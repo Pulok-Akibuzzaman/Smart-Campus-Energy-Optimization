@@ -27,13 +27,10 @@
       --danger-bg: #fee2e2;
       --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       --font-mono: 'JetBrains Mono', monospace;
+      --sidebar-width: 260px;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       background-color: var(--bg);
@@ -41,93 +38,94 @@
       font-family: var(--font-sans);
       font-size: 14px;
       line-height: 1.5;
-      min-height: 100vh;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+    }
+
+    /* Sidebar Layout */
+    .app-layout {
+      display: flex;
+      width: 100%;
+      height: 100%;
+    }
+
+    aside.sidebar {
+      width: var(--sidebar-width);
+      background: var(--surface);
+      border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
-    }
-
-    /* Simple Header */
-    header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 0.85rem 2rem;
-      position: sticky;
-      top: 0;
-      z-index: 20;
-    }
-
-    .header-inner {
-      max-width: 1440px;
-      margin: 0 auto;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      z-index: 10;
     }
 
     .brand {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      text-decoration: none;
-      color: var(--text-main);
+      padding: 1.5rem;
+      font-size: 1.2rem;
       font-weight: 700;
-      font-size: 1.15rem;
+      color: var(--text-main);
+      border-bottom: 1px solid var(--border);
+    }
+    .brand span { color: var(--primary); }
+
+    .nav-menu {
+      display: flex;
+      flex-direction: column;
+      padding: 1rem 0;
+      flex: 1;
     }
 
-    .brand span {
+    .nav-item {
+      padding: 0.85rem 1.5rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 500;
+      border-left: 3px solid transparent;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    
+    .nav-item:hover {
+      background: #f1f5f9;
+      color: var(--text-main);
+    }
+
+    .nav-item.active {
       color: var(--primary);
-    }
-
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.25rem 0.65rem;
-      border-radius: 9999px;
-      background: var(--success-bg);
-      color: var(--success);
-      font-size: 0.75rem;
+      background: #eff6ff;
+      border-left-color: var(--primary);
       font-weight: 600;
     }
 
-    .status-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--success);
+    .sidebar-footer {
+      padding: 1.5rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.75rem;
+      color: var(--text-subtle);
     }
 
-    /* Container */
-    main {
-      max-width: 1440px;
-      width: 100%;
-      margin: 0 auto;
-      padding: 1.5rem 2rem;
+    /* Main Content Area */
+    .main-wrapper {
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 1.25rem;
+      overflow: hidden;
     }
 
-    /* Controls */
-    .controls-card {
+    header.top-header {
       background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 1rem;
-      flex-wrap: wrap;
     }
 
     .selector-group {
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      flex: 1;
-      min-width: 280px;
+      min-width: 350px;
     }
 
     .label {
@@ -150,9 +148,7 @@
       cursor: pointer;
     }
 
-    select.select-input:focus {
-      border-color: var(--border-focus);
-    }
+    select.select-input:focus { border-color: var(--border-focus); }
 
     .btn {
       display: inline-flex;
@@ -168,24 +164,52 @@
       transition: background 0.15s;
     }
 
-    .btn-primary {
-      background: var(--primary);
-      color: #ffffff;
+    .btn-primary { background: var(--primary); color: #ffffff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+
+    main.content-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 2rem;
+      background: var(--bg);
     }
 
-    .btn-primary:hover {
-      background: var(--primary-hover);
+    .view-container { display: none; flex-direction: column; gap: 1.25rem; }
+    .view-container.active { display: flex; }
+
+    .view-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    /* Common Components */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .panel-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.6rem;
     }
 
     /* KPI Summary Row */
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 1rem;
-    }
-
-    @media (max-width: 900px) {
-      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
     }
 
     .kpi-card {
@@ -211,43 +235,7 @@
       color: var(--text-main);
     }
 
-    .kpi-sub {
-      font-size: 0.75rem;
-      color: var(--text-subtle);
-      margin-top: 0.2rem;
-    }
-
-    /* Layout Grid */
-    .content-grid {
-      display: grid;
-      grid-template-columns: 360px 1fr;
-      gap: 1.25rem;
-    }
-
-    @media (max-width: 1080px) {
-      .content-grid { grid-template-columns: 1fr; }
-    }
-
-    .panel {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1.25rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .panel-title {
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: var(--text-main);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 0.6rem;
-    }
+    .kpi-sub { font-size: 0.75rem; color: var(--text-subtle); margin-top: 0.2rem; }
 
     /* Badges */
     .badge {
@@ -258,7 +246,6 @@
       font-weight: 600;
       font-family: var(--font-mono);
     }
-
     .badge-blue { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
     .badge-green { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
     .badge-amber { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
@@ -274,377 +261,233 @@
       flex-direction: column;
       gap: 0.4rem;
     }
-
-    .note-header {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--text-subtle);
-    }
-
+    .note-header { font-size: 0.75rem; font-weight: 600; color: var(--text-subtle); }
     .note-textarea {
-      width: 100%;
-      background: transparent;
-      border: none;
-      color: var(--text-main);
-      font-family: inherit;
-      font-size: 0.85rem;
-      resize: none;
-      outline: none;
-      line-height: 1.4;
+      width: 100%; background: transparent; border: none; color: var(--text-main);
+      font-family: inherit; font-size: 0.85rem; resize: none; outline: none; line-height: 1.4;
     }
 
-    /* Battery specs table */
-    .simple-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.8rem;
-    }
+    /* Tables */
+    .simple-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    .simple-table td { padding: 0.4rem 0; border-bottom: 1px solid #f1f5f9; }
+    .simple-table td.val { text-align: right; font-family: var(--font-mono); font-weight: 600; color: var(--text-main); }
 
-    .simple-table td {
-      padding: 0.4rem 0;
-      border-bottom: 1px solid #f1f5f9;
-    }
+    .data-table-wrap { overflow-x: auto; }
+    table.data-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left; }
+    table.data-table th { padding: 0.5rem 0.75rem; font-weight: 600; color: var(--text-subtle); border-bottom: 1px solid var(--border); background: #f8fafc; }
+    table.data-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #f1f5f9; font-family: var(--font-mono); }
+    table.data-table tr:hover td { background: #f8fafc; }
 
-    .simple-table td.val {
-      text-align: right;
-      font-family: var(--font-mono);
-      font-weight: 600;
-      color: var(--text-main);
-    }
-
-    /* Directives list */
-    .directives-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-
-    .dir-item {
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 0.75rem 1rem;
-      background: #ffffff;
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-    }
-
-    .dir-item.applies {
-      border-left: 4px solid var(--primary);
-      background: #fafbff;
-    }
-
-    .dir-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .dir-name {
-      font-size: 0.85rem;
-      font-weight: 600;
-      font-family: var(--font-mono);
-    }
-
-    .dir-desc {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
-
-    .dir-params {
-      font-family: var(--font-mono);
-      font-size: 0.75rem;
-      color: var(--primary);
-      background: #f1f5f9;
-      padding: 0.2rem 0.5rem;
-      border-radius: 4px;
-      display: inline-block;
-      align-self: flex-start;
-    }
-
-    /* Chart box */
-    .chart-container {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1.25rem;
-      height: 320px;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .chart-title {
-      font-size: 0.85rem;
-      font-weight: 600;
-      margin-bottom: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    .chart-body {
-      flex: 1;
-      position: relative;
-      width: 100%;
-      height: 100%;
-    }
-
-    /* Schedule table */
-    .data-table-wrap {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1.25rem;
-      overflow-x: auto;
-    }
-
-    table.data-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.8rem;
-      text-align: left;
-    }
-
-    table.data-table th {
-      padding: 0.5rem 0.75rem;
-      font-weight: 600;
-      color: var(--text-subtle);
-      border-bottom: 1px solid var(--border);
-      background: #f8fafc;
-    }
-
-    table.data-table td {
-      padding: 0.5rem 0.75rem;
-      border-bottom: 1px solid #f1f5f9;
-      font-family: var(--font-mono);
-    }
-
-    table.data-table tr:hover td {
-      background: #f8fafc;
-    }
-
-    .pill {
-      display: inline-block;
-      padding: 0.15rem 0.45rem;
-      border-radius: 4px;
-      font-size: 0.7rem;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-
+    .pill { display: inline-block; padding: 0.15rem 0.45rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
     .pill-charge { background: #dcfce7; color: #166534; }
     .pill-discharge { background: #fef3c7; color: #92400e; }
     .pill-idle { background: #f1f5f9; color: #475569; }
 
-    footer {
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      padding: 1rem 2rem;
-      text-align: center;
-      font-size: 0.75rem;
-      color: var(--text-subtle);
-      margin-top: auto;
-    }
+    /* Directives list */
+    .directives-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .dir-item { border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1rem; background: #ffffff; display: flex; flex-direction: column; gap: 0.35rem; }
+    .dir-item.applies { border-left: 4px solid var(--primary); background: #fafbff; }
+    .dir-top { display: flex; align-items: center; justify-content: space-between; }
+    .dir-name { font-size: 0.85rem; font-weight: 600; font-family: var(--font-mono); }
+    .dir-desc { font-size: 0.8rem; color: var(--text-muted); }
+    .dir-params { font-family: var(--font-mono); font-size: 0.75rem; color: var(--primary); background: #f1f5f9; padding: 0.2rem 0.5rem; border-radius: 4px; display: inline-block; align-self: flex-start; }
 
-    .spinner {
-      display: none;
-      width: 14px;
-      height: 14px;
-      border: 2px solid #ffffff;
-      border-top-color: transparent;
-      border-radius: 50%;
-      animation: spin 0.6s linear infinite;
-    }
+    /* Chart box */
+    .chart-container { height: 360px; display: flex; flex-direction: column; }
+    .chart-title { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--text-muted); }
+    .chart-body { flex: 1; position: relative; width: 100%; height: 100%; }
 
+    .spinner { display: none; width: 14px; height: 14px; border: 2px solid #ffffff; border-top-color: transparent; border-radius: 50%; animation: spin 0.6s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    
+    .status-badge { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.25rem 0.65rem; border-radius: 9999px; background: var(--success-bg); color: var(--success); font-size: 0.75rem; font-weight: 600; }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
   </style>
 </head>
 <body>
 
-  <!-- Clean Header -->
-  <header>
-    <div class="header-inner">
-      <a href="/" class="brand">
-        GridWise <span>Optimizer</span>
-      </a>
-      <div class="status-badge">
-        <div class="status-dot"></div>
-        API Online
+  <div class="app-layout">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="brand">GridWise <span>Optimizer</span></div>
+      <nav class="nav-menu">
+        <a class="nav-item active" onclick="switchView('view-dashboard', this)">Dashboard Setup</a>
+        <a class="nav-item" onclick="switchView('view-logs', this)">Operator Logs</a>
+        <a class="nav-item" onclick="switchView('view-charts', this)">Analytics Charts</a>
+        <a class="nav-item" onclick="switchView('view-table', this)">Schedule Table</a>
+        <a class="nav-item" onclick="switchView('view-api', this)">API Reference</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="status-badge" style="margin-bottom: 0.5rem;">
+          <div class="status-dot"></div> API Online
+        </div>
+        <div>BUP CSE FEST 2026</div>
       </div>
-    </div>
-  </header>
+    </aside>
 
-  <!-- Main Content -->
-  <main>
-    <!-- Top Controls -->
-    <div class="controls-card">
-      <div class="selector-group">
-        <span class="label">Sample Scenario:</span>
-        <select id="caseSelector" class="select-input" onchange="loadSelectedCase()">
-          <option value="0">SAMPLE-01: Solar cleaning + distractor</option>
-          <option value="1">SAMPLE-02: Battery charging maintenance</option>
-          <option value="2">SAMPLE-03: Emergency reserve (50% capacity)</option>
-          <option value="3">SAMPLE-04: No-discharge protection test</option>
-          <option value="4">SAMPLE-05: Feeder max grid import cap</option>
-          <option value="5">SAMPLE-06: Solar reduction + charging outage</option>
-          <option value="6">SAMPLE-07: Battery reserve + transformer limit</option>
-          <option value="7">SAMPLE-08: Split charge & discharge windows</option>
-          <option value="8">SAMPLE-09: 80% solar reduction</option>
-          <option value="9">SAMPLE-10: Multi-constraint evening operation</option>
-        </select>
-      </div>
-      <div>
+    <!-- Main Application Wrapper -->
+    <div class="main-wrapper">
+      
+      <!-- Top Bar: Global Controls -->
+      <header class="top-header">
+        <div class="selector-group">
+          <span class="label">Sample Scenario:</span>
+          <select id="caseSelector" class="select-input" onchange="loadSelectedCase()">
+            <option value="0">SAMPLE-01: Solar cleaning + distractor</option>
+            <option value="1">SAMPLE-02: Battery charging maintenance</option>
+            <option value="2">SAMPLE-03: Emergency reserve (50% capacity)</option>
+            <option value="3">SAMPLE-04: No-discharge protection test</option>
+            <option value="4">SAMPLE-05: Feeder max grid import cap</option>
+            <option value="5">SAMPLE-06: Solar reduction + charging outage</option>
+            <option value="6">SAMPLE-07: Battery reserve + transformer limit</option>
+            <option value="7">SAMPLE-08: Split charge & discharge windows</option>
+            <option value="8">SAMPLE-09: 80% solar reduction</option>
+            <option value="9">SAMPLE-10: Multi-constraint evening operation</option>
+          </select>
+        </div>
         <button id="runBtn" class="btn btn-primary" onclick="runOptimization()">
           <span class="spinner" id="spinner"></span>
           <span id="btnText">Solve Optimal Plan</span>
         </button>
-      </div>
-    </div>
+      </header>
 
-    <!-- 4 KPI Cards -->
-    <div class="kpi-grid">
-      <div class="kpi-card">
-        <div class="kpi-label">Total Grid Cost</div>
-        <div class="kpi-value" id="kpiCost">--</div>
-        <div class="kpi-sub">BDT</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Total Grid Energy</div>
-        <div class="kpi-value" id="kpiGrid">--</div>
-        <div class="kpi-sub">kWh Import</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Peak Grid Load</div>
-        <div class="kpi-value" id="kpiPeak">--</div>
-        <div class="kpi-sub">kWh in single hour</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Battery Neutrality</div>
-        <div class="kpi-value" id="kpiNeutral">--</div>
-        <div class="kpi-sub">Final E == Initial E</div>
-      </div>
-    </div>
-
-    <!-- 2 Column Layout -->
-    <div class="content-grid">
-      
-      <!-- Left Column: Inputs & Specs -->
-      <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+      <!-- Content Area -->
+      <main class="content-area">
         
-        <!-- Notes Input -->
-        <div class="panel">
-          <div class="panel-title">
-            <span>Operator Notes</span>
-            <span class="badge badge-blue" id="notesBadge">2 Notes</span>
+        <!-- View 1: Dashboard -->
+        <div id="view-dashboard" class="view-container active">
+          <h2 class="view-title">Executive Summary</h2>
+          
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-label">Total Grid Cost</div>
+              <div class="kpi-value" id="kpiCost">--</div>
+              <div class="kpi-sub">BDT</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Total Grid Energy</div>
+              <div class="kpi-value" id="kpiGrid">--</div>
+              <div class="kpi-sub">kWh Import</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Peak Grid Load</div>
+              <div class="kpi-value" id="kpiPeak">--</div>
+              <div class="kpi-sub">kWh in single hour</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Battery Neutrality</div>
+              <div class="kpi-value" id="kpiNeutral">--</div>
+              <div class="kpi-sub">Final E == Initial E</div>
+            </div>
           </div>
-          <div id="notesContainer" style="display: flex; flex-direction: column; gap: 0.6rem;">
-            <!-- Rendered by JS -->
-          </div>
-        </div>
 
-        <!-- Battery Parameters -->
-        <div class="panel">
-          <div class="panel-title">
-            <span>Battery Specification</span>
-          </div>
-          <table class="simple-table">
-            <tr>
-              <td>Capacity</td>
-              <td class="val" id="specCap">--</td>
-            </tr>
-            <tr>
-              <td>Initial Energy</td>
-              <td class="val" id="specInit">--</td>
-            </tr>
-            <tr>
-              <td>Min Reserve</td>
-              <td class="val" id="specMin">--</td>
-            </tr>
-            <tr>
-              <td>Max Rate (Chg/Disch)</td>
-              <td class="val" id="specRate">--</td>
-            </tr>
-          </table>
-        </div>
-
-        <!-- Strategy Summary -->
-        <div class="panel">
-          <div class="panel-title">
-            <span>Dispatch Strategy</span>
-          </div>
-          <p id="planSummaryText" style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5;">
-            Solving schedule...
-          </p>
-        </div>
-
-      </div>
-
-      <!-- Right Column: Results & Charts -->
-      <div style="display: flex; flex-direction: column; gap: 1.25rem;">
-        
-        <!-- Extracted Directives -->
-        <div class="panel">
-          <div class="panel-title">
-            <span>Interpreted Directives & Guardrails</span>
-          </div>
-          <div id="directivesContainer" class="directives-list">
-            <!-- Rendered by JS -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+            <div class="panel">
+              <div class="panel-title"><span>Dispatch Strategy Output</span></div>
+              <p id="planSummaryText" style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">Solving schedule...</p>
+            </div>
+            <div class="panel">
+              <div class="panel-title"><span>Base Battery Specification</span></div>
+              <table class="simple-table">
+                <tr><td>Capacity</td><td class="val" id="specCap">--</td></tr>
+                <tr><td>Initial Energy</td><td class="val" id="specInit">--</td></tr>
+                <tr><td>Min Reserve</td><td class="val" id="specMin">--</td></tr>
+                <tr><td>Max Rate (Chg/Disch)</td><td class="val" id="specRate">--</td></tr>
+              </table>
+            </div>
           </div>
         </div>
 
-        <!-- Energy Dispatch Chart -->
-        <div class="chart-container">
-          <div class="chart-title">24-Hour Energy Balance (Demand vs Solar vs Battery vs Grid)</div>
-          <div class="chart-body">
-            <canvas id="dispatchChart"></canvas>
+        <!-- View 2: Logs & Directives -->
+        <div id="view-logs" class="view-container">
+          <h2 class="view-title">Operator Notes & LLM Extraction</h2>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+            <div class="panel">
+              <div class="panel-title">
+                <span>Input: Natural Language Notes</span>
+                <span class="badge badge-blue" id="notesBadge">Notes</span>
+              </div>
+              <div id="notesContainer" style="display: flex; flex-direction: column; gap: 0.6rem;"></div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-title"><span>Output: Interpreted Guardrails</span></div>
+              <div id="directivesContainer" class="directives-list"></div>
+            </div>
           </div>
         </div>
 
-        <!-- Battery SoC Chart -->
-        <div class="chart-container">
-          <div class="chart-title">Battery Energy Profile (kWh over 24 Hours)</div>
-          <div class="chart-body">
-            <canvas id="batteryChart"></canvas>
+        <!-- View 3: Charts -->
+        <div id="view-charts" class="view-container">
+          <h2 class="view-title">Energy Analytics Visualizations</h2>
+          
+          <div class="panel chart-container">
+            <div class="chart-title">24-Hour Energy Balance (Demand vs Solar vs Battery vs Grid)</div>
+            <div class="chart-body"><canvas id="dispatchChart"></canvas></div>
+          </div>
+
+          <div class="panel chart-container" style="margin-top: 1rem;">
+            <div class="chart-title">Battery Energy Profile (kWh over 24 Hours)</div>
+            <div class="chart-body"><canvas id="batteryChart"></canvas></div>
           </div>
         </div>
 
-      </div>
+        <!-- View 4: Data Table -->
+        <div id="view-table" class="view-container">
+          <h2 class="view-title">24-Hour Schedule Breakdown</h2>
+          <div class="panel data-table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Hour</th>
+                  <th>Demand (kWh)</th>
+                  <th>Solar Used (kWh)</th>
+                  <th>Grid Import (kWh)</th>
+                  <th>Battery Action</th>
+                  <th>Battery (kWh)</th>
+                  <th>Battery Energy (kWh)</th>
+                  <th>Tariff (BDT)</th>
+                </tr>
+              </thead>
+              <tbody id="scheduleTableBody"></tbody>
+            </table>
+          </div>
+        </div>
 
+        <!-- View 5: API Documentation -->
+        <div id="view-api" class="view-container" style="height: calc(100vh - 120px);">
+          <h2 class="view-title">Interactive API Documentation</h2>
+          <div class="panel" style="flex: 1; padding: 0; overflow: hidden; border-radius: 8px;">
+            <iframe src="/docs" style="width: 100%; height: 100%; border: none;"></iframe>
+          </div>
+        </div>
+
+      </main>
     </div>
-
-    <!-- Full 24-Hour Schedule Table -->
-    <div class="data-table-wrap">
-      <div class="panel-title" style="margin-bottom: 0.75rem; border-bottom: none; padding-bottom: 0;">
-        <span>24-Hour Schedule Breakdown</span>
-      </div>
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Hour</th>
-            <th>Demand (kWh)</th>
-            <th>Solar Used (kWh)</th>
-            <th>Grid Import (kWh)</th>
-            <th>Battery Action</th>
-            <th>Battery (kWh)</th>
-            <th>Battery Energy (kWh)</th>
-            <th>Tariff (BDT)</th>
-          </tr>
-        </thead>
-        <tbody id="scheduleTableBody">
-          <!-- Rendered by JS -->
-        </tbody>
-      </table>
-    </div>
-
-  </main>
-
-  <footer>
-    GridWise Campus Energy Dispatch Optimization &bull; Clean White Interface &bull; BUP CSE FEST 2026
-  </footer>
+  </div>
 
   <script>
     let sampleCases = [];
     let currentCaseData = null;
     let dispatchChartInstance = null;
     let batteryChartInstance = null;
+    let currentResultData = null;
+
+    // View Navigation Logic
+    function switchView(viewId, navElement) {
+      document.querySelectorAll('.view-container').forEach(el => el.classList.remove('active'));
+      document.getElementById(viewId).classList.add('active');
+      
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      navElement.classList.add('active');
+
+      // Re-render charts if switching to charts view to fix resize bugs
+      if(viewId === 'view-charts' && currentResultData) {
+        renderCharts(currentResultData.hourly_plan);
+      }
+    }
 
     async function init() {
       try {
@@ -714,7 +557,7 @@
 
         const data = await resp.json();
         const elapsed = (performance.now() - t0).toFixed(1);
-
+        currentResultData = data;
         renderResults(data, elapsed);
       } catch (e) {
         alert("Failed to solve schedule: " + e.message);
@@ -802,6 +645,12 @@
     }
 
     function renderCharts(plan) {
+      // Only render if charts view is active or they are already initialized to save CPU
+      const chartsView = document.getElementById('view-charts');
+      if (!chartsView.classList.contains('active') && dispatchChartInstance === null) {
+        return; 
+      }
+
       const labels = plan.map(p => `${String(p.hour).padStart(2, '0')}:00`);
       const demands = currentCaseData.hours.map(h => h.demand_kwh);
       const solars = plan.map(p => p.solar_used_kwh);
@@ -812,101 +661,40 @@
       if (dispatchChartInstance) dispatchChartInstance.destroy();
       if (batteryChartInstance) batteryChartInstance.destroy();
 
-      // Simple Light Dispatch Chart
       const ctx1 = document.getElementById('dispatchChart').getContext('2d');
       dispatchChartInstance = new Chart(ctx1, {
         type: 'bar',
         data: {
           labels: labels,
           datasets: [
-            {
-              label: 'Campus Demand',
-              type: 'line',
-              data: demands,
-              borderColor: '#e11d48',
-              backgroundColor: 'transparent',
-              borderWidth: 2,
-              pointRadius: 2,
-              tension: 0.1
-            },
-            {
-              label: 'Grid Import',
-              data: grids,
-              backgroundColor: '#3b82f6',
-              borderRadius: 2
-            },
-            {
-              label: 'Solar Used',
-              data: solars,
-              backgroundColor: '#0ea5e9',
-              borderRadius: 2
-            },
-            {
-              label: 'Battery Discharge',
-              data: discharges,
-              backgroundColor: '#f59e0b',
-              borderRadius: 2
-            }
+            { label: 'Campus Demand', type: 'line', data: demands, borderColor: '#e11d48', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 2, tension: 0.1 },
+            { label: 'Grid Import', data: grids, backgroundColor: '#3b82f6', borderRadius: 2 },
+            { label: 'Solar Used', data: solars, backgroundColor: '#0ea5e9', borderRadius: 2 },
+            { label: 'Battery Discharge', data: discharges, backgroundColor: '#f59e0b', borderRadius: 2 }
           ]
         },
         options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } }
-          },
-          scales: {
-            x: { grid: { display: false } },
-            y: { grid: { color: '#f1f5f9' }, title: { display: true, text: 'Energy (kWh)' } }
-          }
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } },
+          scales: { x: { grid: { display: false } }, y: { grid: { color: '#f1f5f9' }, title: { display: true, text: 'Energy (kWh)' } } }
         }
       });
 
-      // Simple Light Battery SoC Chart
       const ctx2 = document.getElementById('batteryChart').getContext('2d');
       batteryChartInstance = new Chart(ctx2, {
         type: 'line',
         data: {
           labels: labels,
           datasets: [
-            {
-              label: 'Stored Battery Energy (kWh)',
-              data: socs,
-              borderColor: '#16a34a',
-              backgroundColor: '#f0fdf4',
-              borderWidth: 2,
-              fill: true,
-              pointRadius: 2,
-              tension: 0.1
-            },
-            {
-              label: 'Capacity Ceiling',
-              data: Array(24).fill(currentCaseData.battery.capacity_kwh),
-              borderColor: '#94a3b8',
-              borderDash: [4, 4],
-              borderWidth: 1,
-              pointRadius: 0
-            },
-            {
-              label: 'Base Reserve Floor',
-              data: Array(24).fill(currentCaseData.battery.minimum_energy_kwh),
-              borderColor: '#f43f5e',
-              borderDash: [2, 2],
-              borderWidth: 1,
-              pointRadius: 0
-            }
+            { label: 'Stored Battery Energy (kWh)', data: socs, borderColor: '#16a34a', backgroundColor: '#f0fdf4', borderWidth: 2, fill: true, pointRadius: 2, tension: 0.1 },
+            { label: 'Capacity Ceiling', data: Array(24).fill(currentCaseData.battery.capacity_kwh), borderColor: '#94a3b8', borderDash: [4, 4], borderWidth: 1, pointRadius: 0 },
+            { label: 'Base Reserve Floor', data: Array(24).fill(currentCaseData.battery.minimum_energy_kwh), borderColor: '#f43f5e', borderDash: [2, 2], borderWidth: 1, pointRadius: 0 }
           ]
         },
         options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } }
-          },
-          scales: {
-            x: { grid: { display: false } },
-            y: { grid: { color: '#f1f5f9' }, title: { display: true, text: 'Energy (kWh)' } }
-          }
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } },
+          scales: { x: { grid: { display: false } }, y: { grid: { color: '#f1f5f9' }, title: { display: true, text: 'Energy (kWh)' } } }
         }
       });
     }
