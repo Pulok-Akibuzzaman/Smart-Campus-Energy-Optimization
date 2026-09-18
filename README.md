@@ -93,9 +93,45 @@ Replays the schedule step-by-step:
 
 ---
 
-## 3. Environment Variables & Configuration
+## 3. Project Directory Structure
 
-Configure via environment variables or a `.env` file:
+```
+Smart-Campus-Energy-Optimization-Challenge/
+├── app/                                  # Core optimization service & API
+│   ├── __init__.py
+│   ├── config.py                         # Settings & .env loader
+│   ├── guardrails.py                     # Deterministic directive validator
+│   ├── llm_interpreter.py                # LLM & offline semantic calibrator
+│   ├── main.py                           # FastAPI application entrypoint
+│   ├── optimizer.py                      # SciPy HiGHS LP dispatch solver
+│   ├── schemas.py                        # Pydantic v2 schemas
+│   └── validator.py                      # Self-replay physics verification
+├── docs/                                 # Documentation, guides & presentations
+│   ├── README.md                         # Documentation index
+│   ├── BUP_CSE_FEST_2026_Participant_Guide_&_Evaluation_Rubric_GridWise_LLM.pdf
+│   ├── BUP_CSE_FEST_2026_Preliminary_Problem_Statement_GridWise_LLM.pdf
+│   └── video_script.md                   # Video demonstration presentation script
+├── static/                               # Interactive visual dashboard
+│   ├── app.js                            # UI state & chart rendering logic
+│   ├── index.html                        # Dashboard HTML
+│   └── style.css                         # Dark glassmorphism styles
+├── .dockerignore                         # Docker exclusion rules
+├── .env                                  # Local active environment variables (git-ignored)
+├── .env.example                          # Environment variable configuration template
+├── .gitignore                            # Git exclusion rules
+├── BUP_CSE_FEST_2026_Preli_Public_Sample_Cases.json # Official sample test suite data
+├── Dockerfile                            # Production container definition
+├── README.md                             # Comprehensive project documentation
+├── requirements.txt                      # Python dependencies
+├── run.py                                # One-command server starter
+└── test_solution.py                      # Automated test suite (10 public cases)
+```
+
+---
+
+## 4. Environment Variables & Configuration
+
+Configure via environment variables or a `.env` file (copy from `.env.example`):
 
 | Variable | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
@@ -111,7 +147,7 @@ Configure via environment variables or a `.env` file:
 
 ---
 
-## 4. Local Quickstart (Clean Environment)
+## 5. Local Quickstart (Clean Environment)
 
 ### Step 1: Clone & Navigate
 ```bash
@@ -166,7 +202,7 @@ Open your web browser:
 
 ---
 
-## 5. Automated Verification & Public Case Testing
+## 6. Automated Verification & Public Case Testing
 
 Run the included end-to-end test suite that exercises:
 - `GET /health` readiness
@@ -214,7 +250,7 @@ ALL 10 PUBLIC SAMPLE CASES & SYSTEM TESTS PASSED SUCCESSFULLY! (100% SCORE)
 
 ---
 
-## 6. API Examples (cURL)
+## 7. API Examples (cURL)
 
 ### 6.1 Health Check (`GET /health`)
 ```bash
@@ -316,7 +352,7 @@ curl -X POST http://localhost:8000/optimize-energy \
 
 ---
 
-## 7. Docker Fallback Instructions
+## 8. Docker Fallback Instructions
 
 A production-ready Docker container is provided for zero-friction judge evaluation:
 
@@ -349,7 +385,7 @@ docker exec gridwise-app python test_solution.py
 
 ---
 
-## 8. Dependencies & Limitations
+## 9. Dependencies & Limitations
 
 ### Dependencies
 - **FastAPI** (`>=0.110.0`) & **Uvicorn** (`>=0.28.0`): Ultra-low overhead async web server.

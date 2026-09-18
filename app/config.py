@@ -1,8 +1,22 @@
 """Configuration management for GridWise Smart Campus Energy Optimization."""
 
 import os
+from pathlib import Path
 from typing import Optional
 from pydantic import BaseModel, Field
+
+# Automatically load .env if present in root directory
+_env_file = Path(__file__).resolve().parent.parent / ".env"
+if _env_file.is_file():
+    with open(_env_file, "r", encoding="utf-8") as _f:
+        for _line in _f:
+            _line = _line.strip()
+            if _line and not _line.startswith("#") and "=" in _line:
+                _k, _v = _line.split("=", 1)
+                _k = _k.strip()
+                _v = _v.strip().strip("\"'")
+                if _k not in os.environ:
+                    os.environ[_k] = _v
 
 
 class Settings(BaseModel):
