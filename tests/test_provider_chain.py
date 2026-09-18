@@ -75,6 +75,29 @@ def _patch_async_client(client):
     return patch.object(httpx.AsyncClient, "__init__", fake_init)
 
 
+# Map provider name -> CFG attribute holding its key. Each _call_* function
+# short-circuits to None when its key is unset/placeholder, so the tests must
+# patch all relevant keys to dummy non-placeholder values.
+_PROVIDER_KEY_ATTR = {
+    "groq": "GROQ_API_KEY",
+    "gemini": "GEMINI_API_KEY",
+    "openrouter": "OPENROUTER_API_KEY",
+    "puku": "PUKU_API_KEY",
+}
+
+
+def _enable_keys(*provider_names: str):
+    """Return a combined patch.object() context that sets dummy API keys for
+    the listed providers so _call_<provider> reaches client.post()."""
+    from contextlib import ExitStack
+
+    stack = ExitStack()
+    for name in provider_names:
+        attr = _PROVIDER_KEY_ATTR[name]
+        stack.enter_context(patch.object(CFG, attr, f"dummy_{name}_key"))
+    return stack
+
+
 # ─────────────────────── Chain semantics ──────────────────────────────
 
 
@@ -92,7 +115,7 @@ def test_first_provider_succeeds():
         async with httpx.AsyncClient() as c:
             return await interpreter.interpret_notes(["any note"], battery_capacity_kwh=500.0)
 
-    with _patch_async_client(client), patch.object(CFG, "LLM_PROVIDER_ORDER", "groq"):
+    with _patch_async_client(client), _enable_keys("groq"), patch.object(CFG, "LLM_PROVIDER_ORDER", "groq"):
         parsed, provider = asyncio.run(run())
     assert provider == "groq"
     assert "directives" in parsed
@@ -113,7 +136,7 @@ def test_first_provider_fails_falls_through_to_second():
         async with httpx.AsyncClient() as c:
             return await interpreter.interpret_notes(["any"], battery_capacity_kwh=500.0)
 
-    with _patch_async_client(client), patch.object(CFG, "LLM_PROVIDER_ORDER", "groq,gemini"):
+    with _patch_async_client(client), _enable_keys("groq", "gemini"), patch.object(CFG, "LLM_PROVIDER_ORDER", "groq,gemini"):
         parsed, provider = asyncio.run(run())
     assert provider == "gemini"
 
@@ -134,7 +157,7 @@ def test_first_two_fail_falls_through_to_third():
         async with httpx.AsyncClient() as c:
             return await interpreter.interpret_notes(["any"], battery_capacity_kwh=500.0)
 
-    with _patch_async_client(client), patch.object(CFG, "LLM_PROVIDER_ORDER", "groq,gemini,openrouter"):
+    with _patch_async_client(client), _enable_keys("groq", "gemini", "openrouter"), patch.object(CFG, "LLM_PROVIDER_ORDER", "groq,gemini,openrouter"):
         parsed, provider = asyncio.run(run())
     assert provider == "openrouter"
 
@@ -156,7 +179,7 @@ def test_all_providers_fail_uses_regex_fallback():
                 battery_capacity_kwh=500.0,
             )
 
-    with _patch_async_client(client), patch.object(CFG, "LLM_PROVIDER_ORDER", "groq,gemini,openrouter,puku"):
+    with _patch_async_client(client), _enable_keys("groq", "gemini", "openrouter", "puku"), patch.object(CFG, "LLM_PROVIDER_ORDER", "groq,gemini,openrouter,puku"):
         parsed, provider = asyncio.run(run())
     assert provider == "regex"
     dirs = parsed["directives"]
@@ -181,7 +204,7 @@ def test_unparseable_response_skips_provider():
         async with httpx.AsyncClient() as c:
             return await interpreter.interpret_notes(["n"], battery_capacity_kwh=500.0)
 
-    with _patch_async_client(client), patch.object(CFG, "LLM_PROVIDER_ORDER", "groq,gemini"):
+    with _patch_async_client(client), _enable_keys("groq", "gemini"), patch.object(CFG, "LLM_PROVIDER_ORDER", "groq,gemini"):
         parsed, provider = asyncio.run(run())
     assert provider == "gemini"
 
@@ -200,7 +223,7 @@ def test_json_in_code_fences_is_parsed():
         async with httpx.AsyncClient() as c:
             return await interpreter.interpret_notes(["n"], battery_capacity_kwh=500.0)
 
-    with _patch_async_client(client), patch.object(CFG, "LLM_PROVIDER_ORDER", "groq"):
+    with _patch_async_client(client), _enable_keys("groq"), patch.object(CFG, "LLM_PROVIDER_ORDER", "groq"):
         parsed, provider = asyncio.run(run())
     assert provider == "groq"
     assert "directives" in parsed
@@ -220,7 +243,7 @@ def test_unknown_provider_silently_skipped():
         async with httpx.AsyncClient() as c:
             return await interpreter.interpret_notes(["n"], battery_capacity_kwh=500.0)
 
-    with _patch_async_client(client), patch.object(CFG, "LLM_PROVIDER_ORDER", "fakeai,groq"):
+    with _patch_async_client(client), _enable_keys("groq"), patch.object(CFG, "LLM_PROVIDER_ORDER", "fakeai,groq"):
         parsed, provider = asyncio.run(run())
     assert provider == "groq"
 
