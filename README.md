@@ -1,6 +1,6 @@
 # GridWise: LLM-Assisted Smart Campus Energy Optimizer
 **BUP CSE FEST 2026 Hackathon — Preliminary Round**  
-*Team: Ai-Will-Fix-It* | *Author: Pulok Akibuzzaman*
+*Team: Ai-Will-Fix-It*
 
 ---
 
@@ -344,8 +344,6 @@ docker run -d --name gridwise -p 8000:8000 pulokakib/gridwise-solver:v1.0
 ## 9. Credits & Acknowledgments
 
 - **Team**: **Ai-Will-Fix-It**
-- **Author & Team Lead**: **Pulok Akibuzzaman**
-- **Competition**: **BUP CSE FEST 2026** — *Smart Campus Energy Optimization Challenge (LLM-Assisted Operator Directive Interpretation)*
 
 ### Technology & Tool Credits
 - **LLM Platforms**:
