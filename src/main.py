@@ -1,15 +1,17 @@
 """
 src/main.py - Smart Campus Energy Optimization HTTP API Service
 Endpoints:
-  - GET /health
-  - POST /optimize-energy
+  - GET / (Interactive Web Dashboard)
+  - GET /health (Readiness Probe)
+  - POST /optimize-energy (Canonical Solver Endpoint)
 """
 
 import os
 import logging
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 
 try:
@@ -33,6 +35,15 @@ app = FastAPI(
     version="2.0.0"
 )
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(BASE_DIR)
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+DATA_DIR = os.path.join(ROOT_DIR, "data")
+
+# Mount data folder for public benchmark samples in the UI
+if os.path.exists(DATA_DIR):
+    app.mount("/data", StaticFiles(directory=DATA_DIR), name="data")
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """Handles schema validation errors cleanly with HTTP 400."""
@@ -50,6 +61,14 @@ async def global_exception_handler(request: Request, exc: Exception):
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"error": "Controlled internal error processing energy optimization."}
     )
+
+@app.get("/", response_class=FileResponse)
+def get_dashboard():
+    """Serves the rich interactive Energy Optimization Control Center UI."""
+    index_file = os.path.join(STATIC_DIR, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+    return JSONResponse(content={"message": "GridWise API is active. Visit /docs or /health."})
 
 @app.get("/health", response_model=HealthResponse)
 def get_health():
