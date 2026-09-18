@@ -194,7 +194,7 @@ async def run_sample(case_id: str, mode: str = Query("llm")) -> Dict[str, Any]:
         # Direct math path — reuse the test harness.
         sys.path.insert(0, str(PROJECT_ROOT))
         try:
-            from tests.test_public_samples import run_case  # type: ignore
+            from tests.public_samples import run_case  # type: ignore
 
             ok, msg, totals = run_case(case)
         except Exception as e:
@@ -264,7 +264,7 @@ async def run_all_samples(mode: str = Query("llm")) -> Dict[str, Any]:
 
     if mode == "math":
         try:
-            from tests.test_public_samples import run_case  # type: ignore
+            from tests.public_samples import run_case  # type: ignore
         except Exception as e:
             return {"error": f"could not import test harness: {e}"}
         for case in samples:
@@ -500,7 +500,7 @@ async def replay_checks() -> Dict[str, Any]:
 
     sys.path.insert(0, str(PROJECT_ROOT))
     try:
-        from tests.test_public_samples import run_case  # type: ignore
+        from tests.public_samples import run_case  # type: ignore
     except Exception as e:
         return {"error": f"could not import test harness: {e}"}
 

@@ -117,6 +117,205 @@ docker build -t gridwise:1.0.0 .
 docker run --rm -p 8000:8000 --env-file .env gridwise:1.0.0
 ```
 
+### 2.2b Run on any distro (Linux / macOS / WSL / Windows)
+
+The app is pure-Python. The only system requirement is a working Python and pip. CBC (PuLP's bundled solver) and scipy both ship as wheels — **no compiler, no `apt build-dep`, no system CBC install is required** on any platform.
+
+Tested against:
+
+| Platform | Python | Status |
+|---|---|---|
+| Ubuntu 22.04 / 24.04 LTS | 3.11, 3.12 | ✅ |
+| Debian 12 (Bookworm) | 3.11 | ✅ |
+| Fedora 39 / 40 | 3.12 | ✅ |
+| RHEL 9 / Rocky 9 | 3.11, 3.12 | ✅ |
+| Arch / Manjaro (rolling) | 3.12 | ✅ |
+| openSUSE Leap 15.6 / Tumbleweed | 3.11 | ✅ |
+| Alpine 3.20 | 3.11 | ✅ (musl libc works; PuLP wheel is pure Python) |
+| macOS 13 Ventura / 14 Sonoma / 15 Sequoia | 3.11, 3.12 | ✅ (Apple Silicon + Intel) |
+| Windows 11 + WSL2 (Ubuntu) | 3.11, 3.12 | ✅ |
+| Windows 11 native | 3.11, 3.12 | ✅ (use `venv\Scripts\activate`) |
+
+#### A. Debian / Ubuntu
+
+```bash
+sudo apt update
+sudo apt install -y python3 python3-venv python3-pip
+# That's it — CBC and scipy are wheels, no system solver needed.
+git clone https://github.com/Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It.git
+cd Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+cp .env.example .env   # then edit with at least GROQ_API_KEY=...
+export PYTHONPATH=src
+uvicorn gridwise.app:app --host 0.0.0.0 --port 8000
+```
+
+If `python3-venv` complains about `ensurepip` on a stripped image:
+```bash
+sudo apt install -y python3-venv python3-full
+```
+
+#### B. Fedora / RHEL / Rocky
+
+```bash
+sudo dnf install -y python3 python3-pip python3-virtualenv
+git clone https://github.com/Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It.git
+cd Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+cp .env.example .env   # edit keys
+export PYTHONPATH=src
+uvicorn gridwise.app:app --host 0.0.0.0 --port 8000
+```
+
+On RHEL 9 you may need CodeReady Builder for newer pip:
+```bash
+sudo dnf install -y python3 python3-pip python3-virtualenv
+sudo dnf --enablerepo=crb install -y python3-devel
+```
+
+#### C. Arch / Manjaro
+
+```bash
+sudo pacman -Syu --noconfirm python python-pip
+git clone https://github.com/Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It.git
+cd Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It
+python -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+cp .env.example .env   # edit keys
+export PYTHONPATH=src
+uvicorn gridwise.app:app --host 0.0.0.0 --port 8000
+```
+
+#### D. openSUSE
+
+```bash
+sudo zypper install -y python3 python3-pip python3-virtualenv
+git clone https://github.com/Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It.git
+cd Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+cp .env.example .env   # edit keys
+export PYTHONPATH=src
+uvicorn gridwise.app:app --host 0.0.0.0 --port 8000
+```
+
+#### E. Alpine (musl)
+
+```bash
+sudo apk add --no-cache python3 py3-pip py3-virtualenv git
+cd Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+cp .env.example .env   # edit keys
+export PYTHONPATH=src
+uvicorn gridwise.app:app --host 0.0.0.0 --port 8000
+```
+
+#### F. macOS (Homebrew — Intel or Apple Silicon)
+
+```bash
+# One-time setup
+xcode-select --install              # if no CLT
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+brew install python@3.12 git
+
+git clone https://github.com/Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It.git
+cd Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+cp .env.example .env   # edit keys
+export PYTHONPATH=src
+uvicorn gridwise.app:app --host 0.0.0.0 --port 8000
+```
+
+#### G. Windows 11 (native PowerShell)
+
+```powershell
+# Requires Python 3.11+ from python.org OR `winget install Python.Python.3.12`
+git clone https://github.com/Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It.git
+cd Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It
+python -m venv venv
+venv\Scripts\Activate.ps1
+pip install --upgrade pip
+pip install -r requirements.txt
+copy .env.example .env              # then edit with Notepad / VS Code
+$env:PYTHONPATH = "src"
+uvicorn gridwise.app:app --host 0.0.0.0 --port 8000
+```
+
+If PowerShell blocks the activation script:
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+```
+
+#### H. Windows 11 + WSL2 (recommended for judges who want a Linux-like environment)
+
+```powershell
+# One-time: enable WSL and install Ubuntu
+wsl --install -d Ubuntu
+```
+
+Then inside the Ubuntu shell, follow section **A. Debian / Ubuntu** verbatim.
+
+#### I. Run as a one-shot systemd service (Linux production-lite)
+
+```ini
+# /etc/systemd/system/gridwise.service
+[Unit]
+Description=GridWise BUP Energy Optimizer
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=gridwise
+WorkingDirectory=/opt/gridwise
+Environment="PYTHONPATH=/opt/gridwise/src"
+EnvironmentFile=/opt/gridwise/.env
+ExecStart=/opt/gridwise/venv/bin/uvicorn gridwise.app:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo useradd --system --home /opt/gridwise --shell /usr/sbin/nologin gridwise
+sudo cp -r . /opt/gridwise/
+sudo chown -R gridwise:gridwise /opt/gridwise
+sudo systemctl daemon-reload
+sudo systemctl enable --now gridwise
+sudo systemctl status gridwise
+curl -s http://127.0.0.1:8000/health
+```
+
+#### J. Common pitfalls (any distro)
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `ERROR: No matching distribution found for fastapi` | pip linked to Python 2.7 | `python3 -m pip install -r requirements.txt` |
+| `pulp` install fails with "no module named distutils" | Python 3.12+ removed distutils | already fixed in PuLP ≥ 2.7; `pip install -U pulp` |
+| `Address already in use` on `:8000` | another process holds the port | `PORT=8001 uvicorn gridwise.app:app --port 8001` or `lsof -i :8000` |
+| `ModuleNotFoundError: No module named 'gridwise'` | forgot `PYTHONPATH=src` | `export PYTHONPATH=src` in the same shell |
+| `groq: 404 Not Found` | merged default model retired on Groq | set `GROQ_MODEL=openai/gpt-oss-20b` in `.env` |
+| UI returns 404 on `/ui` | gated behind `ENABLE_UI=true` | `echo "ENABLE_UI=true" >> .env` and restart |
+| WSL: `bash: uvicorn: not found` after activation | activation didn't actually run | `source venv/bin/activate && which uvicorn` |
+
 ### 2.3 Verify it works
 
 ```bash
