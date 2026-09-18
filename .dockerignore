@@ -14,3 +14,8 @@ test_output/
 .vscode/
 .pytest_cache/
 node_modules/
+
+# Deploy configs are NOT ignored — Railway reads them from the image context
+!railway.toml
+!Procfile
+!runtime.txt
