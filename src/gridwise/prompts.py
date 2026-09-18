@@ -53,6 +53,18 @@ input. The output MUST be valid JSON with the shape:
      - max_grid_window:        {"hours": [...], "max_grid_kwh": <number>}
      - no_op:                  structured_adjustment = null
 
+   Phrasing → directive mapping (canonical examples):
+     "do not charge" / "no charging" / "charger unavailable" / "charging circuit
+        will be down"           -> no_charge_window
+     "must not discharge" / "battery must not discharge" / "no discharging" /
+        "discharge disabled"    -> no_discharge_window
+     "keep at least N kWh"      -> minimum_battery_reserve with minimum_energy_kwh=N
+     "grid cap at N kWh" /
+        "grid intake <= N"      -> max_grid_window with max_grid_kwh=N
+     "N% reduction in solar"   -> solar_reduction factor=(1 - N/100)
+     "drops to about N%" /
+        "N% of forecast solar"  -> solar_reduction factor=(N/100)
+
 3) solar_reduction factor is the USABLE FRACTION that REMAINS.
      "80% reduction" -> factor 0.2
      "drops to about 20%" -> factor 0.2

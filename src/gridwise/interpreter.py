@@ -87,7 +87,10 @@ async def _call_openrouter(client: httpx.AsyncClient, user_prompt: str) -> Optio
     payload = {
         "model": CFG.OPENROUTER_MODEL,
         "temperature": 0,
-        "response_format": {"type": "json_object"},
+        # Many free models on OpenRouter do NOT support response_format
+        # structured-outputs (returns 400 INVALID_REQUEST_BODY). We rely on
+        # the SYSTEM_PROMPT's "JSON only" instruction instead and our
+        # _safe_json_loads tolerates code fences / stray prose.
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_prompt},
@@ -321,7 +324,16 @@ def _regex_fallback(operator_notes: List[str]) -> Dict[str, Any]:
             )
             continue
 
-        if "do not discharge" in t or "cannot discharge" in t or "no discharging" in t or "no discharge" in t:
+        if (
+            "do not discharge" in t
+            or "cannot discharge" in t
+            or "no discharging" in t
+            or "no discharge" in t
+            or "must not discharge" in t
+            or "will not discharge" in t
+            or "should not discharge" in t
+            or ("battery" in t and "not discharge" in t)
+        ):
             out.append(
                 {
                     "note_index": i,
