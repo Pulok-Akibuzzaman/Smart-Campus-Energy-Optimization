@@ -3,29 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GridWise AI — Smart Campus Energy Optimization</title>
+  <title>GridWise — Smart Campus Energy Optimizer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
-      --bg-base: #070b14;
-      --bg-surface: rgba(17, 24, 39, 0.75);
-      --bg-card: rgba(26, 36, 56, 0.65);
-      --border-subtle: rgba(255, 255, 255, 0.08);
-      --border-focus: rgba(99, 102, 241, 0.5);
-      --primary: #6366f1;
-      --primary-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
-      --emerald: #10b981;
-      --emerald-glow: rgba(16, 185, 129, 0.25);
-      --cyan: #06b6d4;
-      --amber: #f59e0b;
-      --rose: #f43f5e;
-      --text-main: #f3f4f6;
-      --text-muted: #9ca3af;
-      --text-dim: #6b7280;
-      --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --border-focus: #3b82f6;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-subtle: #64748b;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #16a34a;
+      --success-bg: #dcfce7;
+      --warning: #d97706;
+      --warning-bg: #fef3c7;
+      --danger: #dc2626;
+      --danger-bg: #fee2e2;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       --font-mono: 'JetBrains Mono', monospace;
     }
 
@@ -36,314 +36,249 @@
     }
 
     body {
-      background-color: var(--bg-base);
-      background-image: 
-        radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
-        radial-gradient(circle at 85% 85%, rgba(6, 182, 212, 0.1) 0%, transparent 45%),
-        radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.05) 0%, transparent 60%);
-      background-attachment: fixed;
+      background-color: var(--bg);
       color: var(--text-main);
       font-family: var(--font-sans);
+      font-size: 14px;
       line-height: 1.5;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
     }
 
-    /* Header */
+    /* Simple Header */
     header {
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      background: rgba(11, 17, 30, 0.85);
-      border-bottom: 1px solid var(--border-subtle);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0.85rem 2rem;
       position: sticky;
       top: 0;
-      z-index: 50;
-      padding: 1rem 2rem;
+      z-index: 20;
     }
 
     .header-inner {
-      max-width: 1600px;
+      max-width: 1440px;
       margin: 0 auto;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 1.5rem;
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 0.85rem;
+      gap: 0.6rem;
       text-decoration: none;
-      color: inherit;
+      color: var(--text-main);
+      font-weight: 700;
+      font-size: 1.15rem;
     }
 
-    .brand-icon {
-      width: 42px;
-      height: 42px;
-      background: var(--primary-gradient);
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
-    }
-
-    .brand-icon svg {
-      width: 24px;
-      height: 24px;
-      color: white;
-    }
-
-    .brand-title {
-      font-size: 1.25rem;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .brand-subtitle {
-      font-size: 0.75rem;
-      color: var(--cyan);
-      font-weight: 600;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-    }
-
-    .header-status {
-      display: flex;
-      align-items: center;
-      gap: 1.5rem;
+    .brand span {
+      color: var(--primary);
     }
 
     .status-badge {
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0.4rem 0.85rem;
+      gap: 0.4rem;
+      padding: 0.25rem 0.65rem;
       border-radius: 9999px;
+      background: var(--success-bg);
+      color: var(--success);
       font-size: 0.75rem;
       font-weight: 600;
-      background: rgba(16, 185, 129, 0.12);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      color: var(--emerald);
     }
 
     .status-dot {
-      width: 8px;
-      height: 8px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
-      background: var(--emerald);
-      box-shadow: 0 0 10px var(--emerald);
-      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      background: var(--success);
     }
 
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(1.2); }
-    }
-
-    /* Main Container */
+    /* Container */
     main {
-      max-width: 1600px;
+      max-width: 1440px;
       width: 100%;
       margin: 0 auto;
-      padding: 2rem;
+      padding: 1.5rem 2rem;
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 2rem;
+      gap: 1.25rem;
     }
 
-    /* Control Bar */
-    .control-panel {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      backdrop-filter: blur(12px);
-      border-radius: 16px;
-      padding: 1.25rem 1.5rem;
+    /* Controls */
+    .controls-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 1.5rem;
+      gap: 1rem;
       flex-wrap: wrap;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
 
-    .case-selector-group {
+    .selector-group {
       display: flex;
       align-items: center;
-      gap: 1rem;
+      gap: 0.75rem;
       flex: 1;
-      min-width: 320px;
+      min-width: 280px;
     }
 
-    .label-tag {
-      font-size: 0.8rem;
+    .label {
       font-weight: 600;
       color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      font-size: 0.85rem;
+      white-space: nowrap;
     }
 
-    select.custom-select {
-      background: rgba(15, 23, 42, 0.85);
-      border: 1px solid var(--border-subtle);
+    select.select-input {
+      background: var(--surface);
+      border: 1px solid var(--border);
       color: var(--text-main);
-      padding: 0.65rem 1.2rem;
-      border-radius: 10px;
-      font-family: var(--font-sans);
-      font-size: 0.9rem;
-      font-weight: 500;
+      padding: 0.5rem 0.85rem;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.85rem;
       outline: none;
       flex: 1;
       cursor: pointer;
-      transition: all 0.2s ease;
     }
 
-    select.custom-select:hover, select.custom-select:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
-    }
-
-    .action-buttons {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
+    select.select-input:focus {
+      border-color: var(--border-focus);
     }
 
     .btn {
       display: inline-flex;
       align-items: center;
-      gap: 0.6rem;
-      padding: 0.7rem 1.4rem;
-      border-radius: 10px;
-      font-family: var(--font-sans);
-      font-size: 0.9rem;
+      gap: 0.5rem;
+      padding: 0.55rem 1.2rem;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.85rem;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s ease;
-      border: none;
-      outline: none;
+      border: 1px solid transparent;
+      transition: background 0.15s;
     }
 
     .btn-primary {
-      background: var(--primary-gradient);
-      color: white;
-      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+      background: var(--primary);
+      color: #ffffff;
     }
 
     .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 24px rgba(99, 102, 241, 0.6);
+      background: var(--primary-hover);
     }
 
-    .btn-primary:active {
-      transform: translateY(0);
-    }
-
-    .btn-secondary {
-      background: rgba(255, 255, 255, 0.06);
-      color: var(--text-main);
-      border: 1px solid var(--border-subtle);
-    }
-
-    .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.2);
-    }
-
-    /* Grid Layout */
-    .dashboard-grid {
+    /* KPI Summary Row */
+    .kpi-grid {
       display: grid;
-      grid-template-columns: 420px 1fr;
-      gap: 2rem;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
     }
 
-    @media (max-width: 1200px) {
-      .dashboard-grid {
-        grid-template-columns: 1fr;
-      }
+    @media (max-width: 900px) {
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
     }
 
-    /* Sidebar / Left Column */
-    .sidebar {
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.2rem;
     }
 
-    .card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      backdrop-filter: blur(16px);
-      border-radius: 16px;
-      padding: 1.5rem;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-    }
-
-    .card-title {
-      font-size: 1rem;
-      font-weight: 700;
-      letter-spacing: -0.01em;
-      margin-bottom: 1.25rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      color: #fff;
-    }
-
-    .badge {
-      font-size: 0.7rem;
-      padding: 0.25rem 0.6rem;
-      border-radius: 6px;
+    .kpi-label {
+      font-size: 0.75rem;
       font-weight: 600;
+      color: var(--text-subtle);
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.03em;
+      margin-bottom: 0.35rem;
     }
 
-    .badge-purple { background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }
-    .badge-cyan { background: rgba(6, 182, 212, 0.15); color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.3); }
-    .badge-emerald { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
-    .badge-amber { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
-    .badge-gray { background: rgba(107, 114, 128, 0.15); color: #9ca3af; border: 1px solid rgba(107, 114, 128, 0.3); }
+    .kpi-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: var(--text-main);
+    }
 
-    /* Operator Notes Container */
-    .notes-list {
+    .kpi-sub {
+      font-size: 0.75rem;
+      color: var(--text-subtle);
+      margin-top: 0.2rem;
+    }
+
+    /* Layout Grid */
+    .content-grid {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 1.25rem;
+    }
+
+    @media (max-width: 1080px) {
+      .content-grid { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
       display: flex;
       flex-direction: column;
       gap: 1rem;
     }
 
-    .note-item {
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid var(--border-subtle);
-      border-radius: 12px;
-      padding: 1rem;
-      position: relative;
-      transition: all 0.2s ease;
-    }
-
-    .note-item:hover {
-      border-color: rgba(99, 102, 241, 0.3);
-      background: rgba(15, 23, 42, 0.9);
-    }
-
-    .note-header {
+    .panel-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-main);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.6rem;
     }
 
-    .note-idx {
-      font-size: 0.75rem;
-      font-family: var(--font-mono);
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
       font-weight: 600;
-      color: var(--cyan);
+      font-family: var(--font-mono);
+    }
+
+    .badge-blue { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .badge-green { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+    .badge-amber { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+    .badge-gray { background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; }
+
+    /* Notes Input */
+    .note-box {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .note-header {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-subtle);
     }
 
     .note-textarea {
@@ -351,138 +286,52 @@
       background: transparent;
       border: none;
       color: var(--text-main);
-      font-family: var(--font-sans);
+      font-family: inherit;
       font-size: 0.85rem;
       resize: none;
       outline: none;
       line-height: 1.4;
     }
 
-    /* Battery Specs List */
-    .specs-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+    /* Battery specs table */
+    .simple-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+
+    .simple-table td {
+      padding: 0.4rem 0;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .simple-table td.val {
+      text-align: right;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    /* Directives list */
+    .directives-list {
+      display: flex;
+      flex-direction: column;
       gap: 0.75rem;
     }
 
-    .spec-box {
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid var(--border-subtle);
-      padding: 0.85rem;
-      border-radius: 10px;
-    }
-
-    .spec-label {
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      font-weight: 600;
-      letter-spacing: 0.05em;
-      margin-bottom: 0.3rem;
-    }
-
-    .spec-val {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: #fff;
-      font-family: var(--font-mono);
-    }
-
-    /* Right Column / Content Area */
-    .content-area {
+    .dir-item {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      background: #ffffff;
       display: flex;
       flex-direction: column;
-      gap: 1.5rem;
+      gap: 0.35rem;
     }
 
-    /* KPI Highlights */
-    .kpi-row {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 1.25rem;
-    }
-
-    @media (max-width: 900px) {
-      .kpi-row {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
-
-    .kpi-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: 16px;
-      padding: 1.25rem;
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-    }
-
-    .kpi-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-    }
-
-    .kpi-card.cost::before { background: linear-gradient(90deg, #ec4899, #f43f5e); }
-    .kpi-card.grid::before { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
-    .kpi-card.peak::before { background: linear-gradient(90deg, #f59e0b, #eab308); }
-    .kpi-card.bat::before { background: linear-gradient(90deg, #10b981, #14b8a6); }
-
-    .kpi-title {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      font-weight: 600;
-      letter-spacing: 0.05em;
-      margin-bottom: 0.5rem;
-    }
-
-    .kpi-val {
-      font-size: 1.75rem;
-      font-weight: 800;
-      font-family: var(--font-mono);
-      letter-spacing: -0.02em;
-      color: #fff;
-    }
-
-    .kpi-sub {
-      font-size: 0.75rem;
-      color: var(--text-dim);
-      margin-top: 0.35rem;
-    }
-
-    /* Directives Result Card */
-    .interpretation-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: 16px;
-      padding: 1.5rem;
-    }
-
-    .directives-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 1rem;
-      margin-top: 1rem;
-    }
-
-    .directive-card {
-      background: rgba(15, 23, 42, 0.7);
-      border: 1px solid var(--border-subtle);
-      border-radius: 12px;
-      padding: 1rem 1.25rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .directive-card.active {
-      border-color: rgba(99, 102, 241, 0.4);
-      background: rgba(99, 102, 241, 0.06);
+    .dir-item.applies {
+      border-left: 4px solid var(--primary);
+      background: #fafbff;
     }
 
     .dir-top {
@@ -491,313 +340,304 @@
       justify-content: space-between;
     }
 
-    .dir-type {
-      font-weight: 700;
-      font-size: 0.9rem;
-      color: #fff;
+    .dir-name {
+      font-size: 0.85rem;
+      font-weight: 600;
       font-family: var(--font-mono);
     }
 
-    .dir-expl {
+    .dir-desc {
       font-size: 0.8rem;
       color: var(--text-muted);
-      line-height: 1.4;
     }
 
     .dir-params {
       font-family: var(--font-mono);
       font-size: 0.75rem;
-      background: rgba(0, 0, 0, 0.3);
-      padding: 0.4rem 0.6rem;
-      border-radius: 6px;
-      color: var(--cyan);
-      margin-top: 0.25rem;
+      color: var(--primary);
+      background: #f1f5f9;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      display: inline-block;
+      align-self: flex-start;
     }
 
-    /* Chart Container */
-    .chart-box {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: 16px;
-      padding: 1.5rem;
-      height: 380px;
+    /* Chart box */
+    .chart-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      height: 320px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chart-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .chart-body {
+      flex: 1;
       position: relative;
+      width: 100%;
+      height: 100%;
     }
 
-    /* Table Container */
-    .table-container {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: 16px;
-      padding: 1.5rem;
+    /* Schedule table */
+    .data-table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
       overflow-x: auto;
     }
 
-    table.schedule-table {
+    table.data-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       text-align: left;
     }
 
-    table.schedule-table th {
-      padding: 0.75rem 1rem;
+    table.data-table th {
+      padding: 0.5rem 0.75rem;
       font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      font-size: 0.7rem;
-      letter-spacing: 0.05em;
-      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-subtle);
+      border-bottom: 1px solid var(--border);
+      background: #f8fafc;
     }
 
-    table.schedule-table td {
-      padding: 0.75rem 1rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    table.data-table td {
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid #f1f5f9;
       font-family: var(--font-mono);
     }
 
-    table.schedule-table tr:hover td {
-      background: rgba(255, 255, 255, 0.02);
+    table.data-table tr:hover td {
+      background: #f8fafc;
     }
 
-    .act-badge {
+    .pill {
       display: inline-block;
-      padding: 0.2rem 0.6rem;
-      border-radius: 6px;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
       font-size: 0.7rem;
       font-weight: 600;
       text-transform: uppercase;
     }
 
-    .act-charge { background: rgba(16, 185, 129, 0.15); color: #34d399; }
-    .act-discharge { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
-    .act-idle { background: rgba(156, 163, 175, 0.1); color: #9ca3af; }
+    .pill-charge { background: #dcfce7; color: #166534; }
+    .pill-discharge { background: #fef3c7; color: #92400e; }
+    .pill-idle { background: #f1f5f9; color: #475569; }
 
-    /* Footer */
     footer {
-      border-top: 1px solid var(--border-subtle);
-      padding: 1.5rem 2rem;
-      font-size: 0.8rem;
-      color: var(--text-dim);
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 1rem 2rem;
       text-align: center;
-      background: rgba(11, 17, 30, 0.5);
+      font-size: 0.75rem;
+      color: var(--text-subtle);
+      margin-top: auto;
     }
 
-    /* Spinner */
     .spinner {
-      border: 3px solid rgba(255, 255, 255, 0.1);
-      border-top-color: #fff;
-      border-radius: 50%;
-      width: 18px;
-      height: 18px;
-      animation: spin 0.8s linear infinite;
       display: none;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #ffffff;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
     }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 
-  <!-- Header -->
+  <!-- Clean Header -->
   <header>
     <div class="header-inner">
       <a href="/" class="brand">
-        <div class="brand-icon">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-          </svg>
-        </div>
-        <div>
-          <div class="brand-title">GridWise AI</div>
-          <div class="brand-subtitle">Smart Campus Energy Dispatch Optimizer</div>
-        </div>
+        GridWise <span>Optimizer</span>
       </a>
-      <div class="header-status">
-        <div class="status-badge">
-          <div class="status-dot"></div>
-          <span>API READY (HTTP 200)</span>
-        </div>
+      <div class="status-badge">
+        <div class="status-dot"></div>
+        API Online
       </div>
     </div>
   </header>
 
   <!-- Main Content -->
   <main>
-    <!-- Top Control Bar -->
-    <div class="control-panel">
-      <div class="case-selector-group">
-        <span class="label-tag">Scenario:</span>
-        <select id="caseSelector" class="custom-select" onchange="loadSelectedCase()">
-          <option value="0">SAMPLE-01: Solar cleaning + cafeteria distractor</option>
-          <option value="1">SAMPLE-02: Battery charging maintenance outage</option>
-          <option value="2">SAMPLE-03: Emergency reserve as percentage (50% capacity)</option>
-          <option value="3">SAMPLE-04: No-discharge protection relay test</option>
-          <option value="4">SAMPLE-05: Feeder constraint max grid import cap</option>
-          <option value="5">SAMPLE-06: Solar reduction + charging outage + distractor</option>
-          <option value="6">SAMPLE-07: Battery reserve + evening transformer limit</option>
-          <option value="7">SAMPLE-08: Split charge & discharge isolation windows</option>
-          <option value="8">SAMPLE-09: 80% solar reduction normalization</option>
+    <!-- Top Controls -->
+    <div class="controls-card">
+      <div class="selector-group">
+        <span class="label">Sample Scenario:</span>
+        <select id="caseSelector" class="select-input" onchange="loadSelectedCase()">
+          <option value="0">SAMPLE-01: Solar cleaning + distractor</option>
+          <option value="1">SAMPLE-02: Battery charging maintenance</option>
+          <option value="2">SAMPLE-03: Emergency reserve (50% capacity)</option>
+          <option value="3">SAMPLE-04: No-discharge protection test</option>
+          <option value="4">SAMPLE-05: Feeder max grid import cap</option>
+          <option value="5">SAMPLE-06: Solar reduction + charging outage</option>
+          <option value="6">SAMPLE-07: Battery reserve + transformer limit</option>
+          <option value="7">SAMPLE-08: Split charge & discharge windows</option>
+          <option value="8">SAMPLE-09: 80% solar reduction</option>
           <option value="9">SAMPLE-10: Multi-constraint evening operation</option>
         </select>
       </div>
-      <div class="action-buttons">
+      <div>
         <button id="runBtn" class="btn btn-primary" onclick="runOptimization()">
           <span class="spinner" id="spinner"></span>
-          <svg id="playIcon" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          <span id="btnText">Solve Optimal Schedule</span>
+          <span id="btnText">Solve Optimal Plan</span>
         </button>
       </div>
     </div>
 
-    <!-- Grid: Sidebar & Results -->
-    <div class="dashboard-grid">
+    <!-- 4 KPI Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Total Grid Cost</div>
+        <div class="kpi-value" id="kpiCost">--</div>
+        <div class="kpi-sub">BDT</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Total Grid Energy</div>
+        <div class="kpi-value" id="kpiGrid">--</div>
+        <div class="kpi-sub">kWh Import</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Peak Grid Load</div>
+        <div class="kpi-value" id="kpiPeak">--</div>
+        <div class="kpi-sub">kWh in single hour</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Battery Neutrality</div>
+        <div class="kpi-value" id="kpiNeutral">--</div>
+        <div class="kpi-sub">Final E == Initial E</div>
+      </div>
+    </div>
+
+    <!-- 2 Column Layout -->
+    <div class="content-grid">
       
-      <!-- Left Column: Inputs -->
-      <div class="sidebar">
-        <!-- Operator Notes -->
-        <div class="card">
-          <div class="card-title">
+      <!-- Left Column: Inputs & Specs -->
+      <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+        
+        <!-- Notes Input -->
+        <div class="panel">
+          <div class="panel-title">
             <span>Operator Notes</span>
-            <span class="badge badge-purple" id="noteCountBadge">2 Notes</span>
+            <span class="badge badge-blue" id="notesBadge">2 Notes</span>
           </div>
-          <div id="notesContainer" class="notes-list">
-            <!-- Populated via JS -->
-          </div>
-        </div>
-
-        <!-- Battery Specs -->
-        <div class="card">
-          <div class="card-title">
-            <span>Battery Parameters</span>
-            <span class="badge badge-cyan">Microgrid Storage</span>
-          </div>
-          <div class="specs-grid">
-            <div class="spec-box">
-              <div class="spec-label">Capacity</div>
-              <div class="spec-val" id="specCap">300 kWh</div>
-            </div>
-            <div class="spec-box">
-              <div class="spec-label">Initial Energy</div>
-              <div class="spec-val" id="specInit">110 kWh</div>
-            </div>
-            <div class="spec-box">
-              <div class="spec-label">Min Reserve</div>
-              <div class="spec-val" id="specMin">40 kWh</div>
-            </div>
-            <div class="spec-box">
-              <div class="spec-label">Max Charge/Disch</div>
-              <div class="spec-val" id="specRate">75 kW</div>
-            </div>
+          <div id="notesContainer" style="display: flex; flex-direction: column; gap: 0.6rem;">
+            <!-- Rendered by JS -->
           </div>
         </div>
 
-        <!-- AI Plan Summary -->
-        <div class="card">
-          <div class="card-title">
-            <span>Executive Strategy</span>
-            <span class="badge badge-emerald">Verified</span>
+        <!-- Battery Parameters -->
+        <div class="panel">
+          <div class="panel-title">
+            <span>Battery Specification</span>
           </div>
-          <p id="planSummaryText" style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
-            Click "Solve Optimal Schedule" to compute the global cost-minimal dispatch.
+          <table class="simple-table">
+            <tr>
+              <td>Capacity</td>
+              <td class="val" id="specCap">--</td>
+            </tr>
+            <tr>
+              <td>Initial Energy</td>
+              <td class="val" id="specInit">--</td>
+            </tr>
+            <tr>
+              <td>Min Reserve</td>
+              <td class="val" id="specMin">--</td>
+            </tr>
+            <tr>
+              <td>Max Rate (Chg/Disch)</td>
+              <td class="val" id="specRate">--</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Strategy Summary -->
+        <div class="panel">
+          <div class="panel-title">
+            <span>Dispatch Strategy</span>
+          </div>
+          <p id="planSummaryText" style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5;">
+            Solving schedule...
           </p>
         </div>
+
       </div>
 
-      <!-- Right Column: Outputs -->
-      <div class="content-area">
+      <!-- Right Column: Results & Charts -->
+      <div style="display: flex; flex-direction: column; gap: 1.25rem;">
         
-        <!-- KPI Metrics -->
-        <div class="kpi-row">
-          <div class="kpi-card cost">
-            <div class="kpi-title">Total Grid Cost</div>
-            <div class="kpi-val" id="kpiCost">--</div>
-            <div class="kpi-sub">BDT Currency</div>
+        <!-- Extracted Directives -->
+        <div class="panel">
+          <div class="panel-title">
+            <span>Interpreted Directives & Guardrails</span>
           </div>
-          <div class="kpi-card grid">
-            <div class="kpi-title">Total Grid Energy</div>
-            <div class="kpi-val" id="kpiGrid">--</div>
-            <div class="kpi-sub">kWh Import</div>
-          </div>
-          <div class="kpi-card peak">
-            <div class="kpi-title">Peak Grid Load</div>
-            <div class="kpi-val" id="kpiPeak">--</div>
-            <div class="kpi-sub">kWh / hour</div>
-          </div>
-          <div class="kpi-card bat">
-            <div class="kpi-title">Battery Neutrality</div>
-            <div class="kpi-val" id="kpiNeutral">--</div>
-            <div class="kpi-sub">E[23] == E[0]</div>
+          <div id="directivesContainer" class="directives-list">
+            <!-- Rendered by JS -->
           </div>
         </div>
 
-        <!-- Directives Interpretation View -->
-        <div class="interpretation-card">
-          <div class="card-title" style="margin-bottom: 0.5rem;">
-            <span>AI Directive Interpretation & Guardrail Validation</span>
-            <span class="badge badge-cyan" id="dirBadge">Awaiting Run</span>
-          </div>
-          <div id="directivesContainer" class="directives-grid">
-            <!-- Populated via JS -->
-          </div>
-        </div>
-
-        <!-- 24-Hour Energy Balance Chart -->
-        <div class="chart-box">
-          <div class="card-title" style="margin-bottom: 0.75rem;">
-            <span>24-Hour Campus Energy Dispatch (Demand vs Solar vs Battery vs Grid)</span>
-          </div>
-          <div style="height: calc(100% - 35px); width: 100%;">
+        <!-- Energy Dispatch Chart -->
+        <div class="chart-container">
+          <div class="chart-title">24-Hour Energy Balance (Demand vs Solar vs Battery vs Grid)</div>
+          <div class="chart-body">
             <canvas id="dispatchChart"></canvas>
           </div>
         </div>
 
-        <!-- Battery SoC Curve Chart -->
-        <div class="chart-box">
-          <div class="card-title" style="margin-bottom: 0.75rem;">
-            <span>Battery State-of-Charge (SoC) Trajectory & Reserve Enforcements</span>
-          </div>
-          <div style="height: calc(100% - 35px); width: 100%;">
+        <!-- Battery SoC Chart -->
+        <div class="chart-container">
+          <div class="chart-title">Battery Energy Profile (kWh over 24 Hours)</div>
+          <div class="chart-body">
             <canvas id="batteryChart"></canvas>
           </div>
-        </div>
-
-        <!-- Detailed 24h Table -->
-        <div class="table-container">
-          <div class="card-title" style="margin-bottom: 1rem;">
-            <span>Hourly Dispatch Plan Schedule (Hours 00:00 to 23:00)</span>
-          </div>
-          <table class="schedule-table">
-            <thead>
-              <tr>
-                <th>Hour</th>
-                <th>Demand (kWh)</th>
-                <th>Solar Used (kWh)</th>
-                <th>Grid Import (kWh)</th>
-                <th>Battery Action</th>
-                <th>Battery (kWh)</th>
-                <th>Energy After (kWh)</th>
-                <th>Tariff (BDT)</th>
-              </tr>
-            </thead>
-            <tbody id="scheduleTableBody">
-              <!-- Populated via JS -->
-            </tbody>
-          </table>
         </div>
 
       </div>
 
     </div>
+
+    <!-- Full 24-Hour Schedule Table -->
+    <div class="data-table-wrap">
+      <div class="panel-title" style="margin-bottom: 0.75rem; border-bottom: none; padding-bottom: 0;">
+        <span>24-Hour Schedule Breakdown</span>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Hour</th>
+            <th>Demand (kWh)</th>
+            <th>Solar Used (kWh)</th>
+            <th>Grid Import (kWh)</th>
+            <th>Battery Action</th>
+            <th>Battery (kWh)</th>
+            <th>Battery Energy (kWh)</th>
+            <th>Tariff (BDT)</th>
+          </tr>
+        </thead>
+        <tbody id="scheduleTableBody">
+          <!-- Rendered by JS -->
+        </tbody>
+      </table>
+    </div>
+
   </main>
 
   <footer>
-    GridWise Microgrid AI Optimization System &copy; 2026 BUP CSE FEST Hackathon. All calculations solved via PuLP Linear Programming.
+    GridWise Campus Energy Dispatch Optimization &bull; Clean White Interface &bull; BUP CSE FEST 2026
   </footer>
 
   <script>
@@ -806,7 +646,6 @@
     let dispatchChartInstance = null;
     let batteryChartInstance = null;
 
-    // Load sample cases pack
     async function init() {
       try {
         const resp = await fetch('/data/BUP_CSE_FEST_2026_Preli_Public_Sample_Cases.json');
@@ -814,7 +653,7 @@
         sampleCases = data.cases;
         loadSelectedCase();
       } catch (err) {
-        console.error("Could not load sample cases pack:", err);
+        console.error("Could not load sample cases:", err);
       }
     }
 
@@ -828,16 +667,14 @@
       notesContainer.innerHTML = '';
       currentCaseData.operator_notes.forEach((note, i) => {
         const div = document.createElement('div');
-        div.className = 'note-item';
+        div.className = 'note-box';
         div.innerHTML = `
-          <div class="note-header">
-            <span class="note-idx">NOTE #${i}</span>
-          </div>
-          <textarea class="note-textarea" rows="3" onchange="updateNoteText(${i}, this.value)">${note}</textarea>
+          <div class="note-header">Note #${i}</div>
+          <textarea class="note-textarea" rows="2" onchange="updateNoteText(${i}, this.value)">${note}</textarea>
         `;
         notesContainer.appendChild(div);
       });
-      document.getElementById('noteCountBadge').innerText = `${currentCaseData.operator_notes.length} Notes`;
+      document.getElementById('notesBadge').innerText = `${currentCaseData.operator_notes.length} Notes`;
 
       // Battery specs
       document.getElementById('specCap').innerText = `${currentCaseData.battery.capacity_kwh} kWh`;
@@ -845,7 +682,7 @@
       document.getElementById('specMin').innerText = `${currentCaseData.battery.minimum_energy_kwh} kWh`;
       document.getElementById('specRate').innerText = `${currentCaseData.battery.max_charge_kwh_per_hour} kW`;
 
-      // Trigger optimization automatically
+      // Run optimization
       runOptimization();
     }
 
@@ -859,10 +696,8 @@
       if (!currentCaseData) return;
       
       const spinner = document.getElementById('spinner');
-      const playIcon = document.getElementById('playIcon');
       const btnText = document.getElementById('btnText');
       spinner.style.display = 'inline-block';
-      playIcon.style.display = 'none';
       btnText.innerText = 'Solving...';
 
       try {
@@ -874,7 +709,7 @@
         });
 
         if (!resp.ok) {
-          throw new Error(`API error: ${resp.status}`);
+          throw new Error(`Server returned HTTP ${resp.status}`);
         }
 
         const data = await resp.json();
@@ -885,8 +720,7 @@
         alert("Failed to solve schedule: " + e.message);
       } finally {
         spinner.style.display = 'none';
-        playIcon.style.display = 'inline-block';
-        btnText.innerText = 'Solve Optimal Schedule';
+        btnText.innerText = 'Solve Optimal Plan';
       }
     }
 
@@ -900,66 +734,67 @@
       const finalE = res.hourly_plan[23].battery_energy_after_kwh;
       const isNeutral = Math.abs(finalE - initialE) <= 0.05;
       document.getElementById('kpiNeutral').innerHTML = isNeutral 
-        ? `<span style="color: var(--emerald)">MATCH (${finalE} kWh)</span>`
-        : `<span style="color: var(--rose)">MISMATCH</span>`;
+        ? `<span style="color: var(--success); font-size: 1.25rem;">Valid (${finalE} kWh)</span>`
+        : `<span style="color: var(--danger); font-size: 1.25rem;">Mismatch</span>`;
 
-      // 2. Plan Summary
-      document.getElementById('planSummaryText').innerText = res.plan_summary + ` (Solved in ${elapsedMs} ms)`;
+      // 2. Summary
+      document.getElementById('planSummaryText').innerText = res.plan_summary + ` (Calculated in ${elapsedMs} ms)`;
 
       // 3. Directives List
       const dirCont = document.getElementById('directivesContainer');
       dirCont.innerHTML = '';
-      document.getElementById('dirBadge').innerText = `${res.directive_interpretation.length} Analyzed`;
 
       res.directive_interpretation.forEach(d => {
-        const c = document.createElement('div');
-        c.className = `directive-card ${d.applies ? 'active' : ''}`;
-        const typeBadge = d.applies ? 'badge-purple' : 'badge-gray';
-        const statusBadge = d.applies ? 'badge-emerald' : 'badge-amber';
+        const item = document.createElement('div');
+        item.className = `dir-item ${d.applies ? 'applies' : ''}`;
         
         let paramsHtml = '';
         if (d.structured_adjustment) {
           const adj = d.structured_adjustment;
-          const hStr = adj.hours ? `Hours: [${adj.hours.join(', ')}]` : '';
-          const fStr = adj.factor !== undefined ? ` | Factor: ${adj.factor}` : '';
-          const mStr = adj.minimum_energy_kwh !== undefined ? ` | Min: ${adj.minimum_energy_kwh} kWh` : '';
-          const gStr = adj.max_grid_kwh !== undefined ? ` | Max Grid: ${adj.max_grid_kwh} kWh` : '';
-          paramsHtml = `<div class="dir-params">${hStr}${fStr}${mStr}${gStr}</div>`;
+          const parts = [];
+          if (adj.hours) parts.push(`Hours: [${adj.hours.join(', ')}]`);
+          if (adj.factor !== undefined) parts.push(`Factor: ${adj.factor}`);
+          if (adj.minimum_energy_kwh !== undefined) parts.push(`Min: ${adj.minimum_energy_kwh} kWh`);
+          if (adj.max_grid_kwh !== undefined) parts.push(`Max Grid: ${adj.max_grid_kwh} kWh`);
+          paramsHtml = `<div class="dir-params">${parts.join(' | ')}</div>`;
         }
 
-        c.innerHTML = `
+        const badgeClass = d.applies ? 'badge-green' : 'badge-gray';
+        const badgeLabel = d.applies ? 'APPLIES' : 'NO_OP';
+
+        item.innerHTML = `
           <div class="dir-top">
-            <span class="dir-type">${d.directive_type}</span>
+            <span class="dir-name">${d.directive_type}</span>
             <div>
-              <span class="badge ${typeBadge}">Note #${d.note_index}</span>
-              <span class="badge ${statusBadge}">${d.applies ? 'APPLIES' : 'NO_OP'}</span>
+              <span class="badge badge-blue">Note #${d.note_index}</span>
+              <span class="badge ${badgeClass}">${badgeLabel}</span>
             </div>
           </div>
-          <div class="dir-expl">${d.explanation}</div>
+          <div class="dir-desc">${d.explanation}</div>
           ${paramsHtml}
         `;
-        dirCont.appendChild(c);
+        dirCont.appendChild(item);
       });
 
-      // 4. Update Charts
+      // 4. Charts
       renderCharts(res.hourly_plan);
 
-      // 5. Update Table
+      // 5. Table
       const tbody = document.getElementById('scheduleTableBody');
       tbody.innerHTML = '';
       res.hourly_plan.forEach((row, i) => {
         const inpRow = currentCaseData.hours[i];
         const tr = document.createElement('tr');
-        const actClass = row.battery_action === 'charge' ? 'act-charge' : (row.battery_action === 'discharge' ? 'act-discharge' : 'act-idle');
+        const pillClass = row.battery_action === 'charge' ? 'pill-charge' : (row.battery_action === 'discharge' ? 'pill-discharge' : 'pill-idle');
         
         tr.innerHTML = `
           <td><strong>${String(row.hour).padStart(2, '0')}:00</strong></td>
           <td>${inpRow.demand_kwh}</td>
-          <td style="color: var(--cyan); font-weight:600;">${row.solar_used_kwh}</td>
-          <td style="color: #c084fc; font-weight:600;">${row.grid_kwh}</td>
-          <td><span class="act-badge ${actClass}">${row.battery_action}</span></td>
+          <td>${row.solar_used_kwh}</td>
+          <td>${row.grid_kwh}</td>
+          <td><span class="pill ${pillClass}">${row.battery_action}</span></td>
           <td>${row.battery_kwh}</td>
-          <td style="color: var(--emerald); font-weight:600;">${row.battery_energy_after_kwh}</td>
+          <td>${row.battery_energy_after_kwh}</td>
           <td>৳${inpRow.tariff_bdt_per_kwh}</td>
         `;
         tbody.appendChild(tr);
@@ -971,15 +806,13 @@
       const demands = currentCaseData.hours.map(h => h.demand_kwh);
       const solars = plan.map(p => p.solar_used_kwh);
       const grids = plan.map(p => p.grid_kwh);
-      const charges = plan.map(p => p.battery_action === 'charge' ? p.battery_kwh : 0);
       const discharges = plan.map(p => p.battery_action === 'discharge' ? p.battery_kwh : 0);
       const socs = plan.map(p => p.battery_energy_after_kwh);
 
-      // Destroy previous charts if existing
       if (dispatchChartInstance) dispatchChartInstance.destroy();
       if (batteryChartInstance) batteryChartInstance.destroy();
 
-      // Dispatch Chart
+      // Simple Light Dispatch Chart
       const ctx1 = document.getElementById('dispatchChart').getContext('2d');
       dispatchChartInstance = new Chart(ctx1, {
         type: 'bar',
@@ -987,50 +820,49 @@
           labels: labels,
           datasets: [
             {
-              label: 'Demand (kWh)',
+              label: 'Campus Demand',
               type: 'line',
               data: demands,
-              borderColor: '#f43f5e',
+              borderColor: '#e11d48',
               backgroundColor: 'transparent',
               borderWidth: 2,
               pointRadius: 2,
-              tension: 0.2
+              tension: 0.1
             },
             {
-              label: 'Grid Import (kWh)',
+              label: 'Grid Import',
               data: grids,
-              backgroundColor: 'rgba(168, 85, 247, 0.75)',
-              borderRadius: 4
+              backgroundColor: '#3b82f6',
+              borderRadius: 2
             },
             {
-              label: 'Solar Used (kWh)',
+              label: 'Solar Used',
               data: solars,
-              backgroundColor: 'rgba(6, 182, 212, 0.75)',
-              borderRadius: 4
+              backgroundColor: '#0ea5e9',
+              borderRadius: 2
             },
             {
-              label: 'Battery Discharge (kWh)',
+              label: 'Battery Discharge',
               data: discharges,
-              backgroundColor: 'rgba(245, 158, 11, 0.75)',
-              borderRadius: 4
+              backgroundColor: '#f59e0b',
+              borderRadius: 2
             }
           ]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
           plugins: {
-            legend: { labels: { color: '#9ca3af', font: { family: 'Plus Jakarta Sans', size: 11 } } }
+            legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } }
           },
           scales: {
-            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af', font: { size: 10 } } },
-            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af', font: { size: 10 } }, title: { display: true, text: 'Energy (kWh)', color: '#6b7280' } }
+            x: { grid: { display: false } },
+            y: { grid: { color: '#f1f5f9' }, title: { display: true, text: 'Energy (kWh)' } }
           }
         }
       });
 
-      // Battery SoC Chart
+      // Simple Light Battery SoC Chart
       const ctx2 = document.getElementById('batteryChart').getContext('2d');
       batteryChartInstance = new Chart(ctx2, {
         type: 'line',
@@ -1038,29 +870,28 @@
           labels: labels,
           datasets: [
             {
-              label: 'Battery Energy (kWh)',
+              label: 'Stored Battery Energy (kWh)',
               data: socs,
-              borderColor: '#10b981',
-              backgroundColor: 'rgba(16, 185, 129, 0.15)',
-              borderWidth: 3,
+              borderColor: '#16a34a',
+              backgroundColor: '#f0fdf4',
+              borderWidth: 2,
               fill: true,
-              pointBackgroundColor: '#10b981',
-              pointRadius: 3,
-              tension: 0.2
+              pointRadius: 2,
+              tension: 0.1
             },
             {
-              label: 'Battery Capacity Limit',
+              label: 'Capacity Ceiling',
               data: Array(24).fill(currentCaseData.battery.capacity_kwh),
-              borderColor: 'rgba(255, 255, 255, 0.2)',
-              borderDash: [5, 5],
+              borderColor: '#94a3b8',
+              borderDash: [4, 4],
               borderWidth: 1,
               pointRadius: 0
             },
             {
               label: 'Base Reserve Floor',
               data: Array(24).fill(currentCaseData.battery.minimum_energy_kwh),
-              borderColor: 'rgba(244, 63, 94, 0.4)',
-              borderDash: [3, 3],
+              borderColor: '#f43f5e',
+              borderDash: [2, 2],
               borderWidth: 1,
               pointRadius: 0
             }
@@ -1069,19 +900,17 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
           plugins: {
-            legend: { labels: { color: '#9ca3af', font: { family: 'Plus Jakarta Sans', size: 11 } } }
+            legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } }
           },
           scales: {
-            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af', font: { size: 10 } } },
-            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af', font: { size: 10 } }, title: { display: true, text: 'Stored Energy (kWh)', color: '#6b7280' } }
+            x: { grid: { display: false } },
+            y: { grid: { color: '#f1f5f9' }, title: { display: true, text: 'Energy (kWh)' } }
           }
         }
       });
     }
 
-    // Start on load
     window.addEventListener('DOMContentLoaded', init);
   </script>
 </body>
