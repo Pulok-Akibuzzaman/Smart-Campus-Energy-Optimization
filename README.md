@@ -1,29 +1,66 @@
 # GridWise: LLM-Assisted Smart Campus Energy Optimizer
-**BUP CSE FEST 2026 Hackathon — Preliminary Round**
+**BUP CSE FEST 2026 Hackathon — Preliminary Round**  
+*Team: Ai-Will-Fix-It* | *Author: Pulok Akibuzzaman*
 
 ---
 
-## 1. System Architecture
+## 1. Project Overview & What Has Been Done
 
-The GridWise solution is engineered as an end-to-end decoupled pipeline where human language is interpreted, validated by deterministic guardrails, and fed into an exact mathematical optimizer:
+GridWise is an end-to-end, resilient energy scheduling and optimization service designed for a smart university campus microgrid. The system ingests 24-hour forecasts of solar generation, campus energy demand, and time-of-use tariffs alongside unstructured natural-language operator directives. It parses, validates, and mathematically optimizes hourly battery charge/discharge and grid intake to minimize total campus electricity cost while strictly respecting physical, operational, and directive constraints.
+
+### Key Milestones & Completed Features
+
+- [x] **Multi-Tier LLM Directive Interpretation**:
+  - **Puku.sh AI Integration**: Primary high-throughput inference engine utilizing `puku-ai-2.8` via Anthropic-compatible messages API (`https://api-cli.puku.sh`).
+  - **Google Gemini Integration**: Native support for `gemini-2.5-flash` / `gemini-1.5-pro` with structured JSON output mode.
+  - **OpenAI / Groq Compatibility**: Flexible adapter for OpenAI-compatible endpoints (`gpt-4o-mini`, `llama-3.3-70b-versatile`).
+  - **Deterministic NLP Heuristic Fallback Engine**: Fully offline, regex-based semantic parser capable of extracting all 6 directive types, parsing whole-hour intervals (start-inclusive, end-exclusive), resolving reduction factors/percentages, and filtering non-operational distractors with zero external network dependency.
+
+- [x] **Deterministic Safety Guardrails & Sanitizer** ([`src/guardrails.py`](./src/guardrails.py)):
+  - Canonical time-window validation guaranteeing unique, ascending hour arrays in `[0..23]`.
+  - Normalization of reduction factors (e.g., 80% reduction $\rightarrow$ 0.20 usable factor).
+  - Absolute energy conversion for percentage reserves using physical battery capacity.
+  - Strict enforcement of competition schema semantics (`applies: false` $\iff$ `directive_type: "no_op"`).
+  - Zero-crash guarantee against malformed, incomplete, or adversarial LLM outputs.
+
+- [x] **Mixed-Integer Linear Programming (MILP) Optimizer** ([`src/optimizer.py`](./src/optimizer.py)):
+  - Mathematical 24-hour horizon solver built on **PuLP** with **HiGHS / CBC**.
+  - Objective: $\min \sum_{h=0}^{23} (\text{grid}[h] \times \text{tariff}[h])$.
+  - Exact enforcement of hourly energy balance, battery rate constraints, mutual exclusion of simultaneous charge/discharge, storage capacity bounds, and end-of-day neutrality ($E_{23} = E_{\text{initial}}$).
+  - High performance: Solves 24-hour schedules in **~16 ms** per scenario with 100% exact ground-truth cost match.
+
+- [x] **Production FastAPI HTTP Service & Live Dashboard** ([`src/main.py`](./src/main.py)):
+  - `GET /health`: Fast readiness probe returning service metadata (HTTP 200).
+  - `POST /optimize-energy`: Canonical solver endpoint accepting scenario JSON and outputting the official `OptimizeEnergyResponse` contract with recomputed totals and human-readable plan summaries.
+  - `GET /`: Interactive web dashboard powered by Chart.js featuring real-time scenario benchmarking, hourly energy flow graphs, and battery state-of-charge tracking.
+
+- [x] **Comprehensive Testing & Benchmark Suite**:
+  - 10/10 official public sample cases verified with $0.00$ BDT cost discrepancy.
+  - Automated test suites for interpreter parsing, physical constraint validation, and API HTTP error handling.
+
+- [x] **Deployment & Containerization**:
+  - Dockerized with a lightweight multi-platform image ready for immediate cloud deployment.
+
+---
+
+## 2. System Architecture
 
 ```
 [ POST /optimize-energy ]
            │
            ▼
-[ 1. LLM Directive Interpreter ]
-     • Parses natural-language operator notes into candidate directives:
-       (solar_reduction, minimum_battery_reserve, no_charge_window, no_discharge_window, max_grid_window, no_op)
-     • Supports Google Gemini (gemini-2.5-flash) and OpenAI / Groq / Local endpoints
-     • Zero-crash fallback NLP parser for extreme resilience
+[ 1. Multi-Tier LLM Directive Interpreter ]
+     • 1st Priority: Puku.sh AI (puku-ai-2.8)
+     • 2nd Priority: Google Gemini (gemini-2.5-flash)
+     • 3rd Priority: OpenAI / Groq / Local endpoints
+     • Safety Tier: Deterministic Heuristic NLP Fallback
            │
            ▼
 [ 2. Deterministic Guardrails & Normalizer ]
      • Enforces whole-hour conventions (start-inclusive, end-exclusive)
-     • Ensures unique, ascending hours array (0..23)
-     • Normalizes reduction factors (e.g. 80% reduction -> 0.20 usable factor)
-     • Resolves percentage-based reserve to absolute kWh using battery capacity
-     • Enforces strict applies semantics (applies=false and null adjustment only for no_op)
+     • Validates & canonicalizes time windows from note text
+     • Clamps reduction factors, reserve thresholds, and grid caps
+     • Guarantees 1-to-1 directive-to-note mapping and schema integrity
            │
            ▼
 [ 3. Mixed-Integer Linear Programming Optimizer (PuLP / HiGHS) ]
@@ -32,41 +69,61 @@ The GridWise solution is engineered as an end-to-end decoupled pipeline where hu
      • Physical constraints:
        - Energy balance: grid[h] + solar_used[h] + discharge[h] == demand[h] + charge[h]
        - Battery rate limits: charge[h] <= max_charge, discharge[h] <= max_discharge
-       - Mutual exclusion: charge and discharge never occur simultaneously
-       - Battery state transitions & capacity bounds: active_min <= E_after[h] <= capacity
-       - End-of-day neutrality: E_after[23] == initial_energy_kwh
+       - Mutual exclusion: charge[h] and discharge[h] cannot be active simultaneously
+       - Storage bounds: active_min <= E_after[h] <= capacity
+       - Neutrality: E_after[23] == initial_energy_kwh
        - All operational directive constraints enforced strictly
            │
            ▼
 [ 4. Recalculation & API Response Formatter ]
-     • Recalculates total_grid_kwh, total_cost_bdt, peak_grid_kwh directly from hourly_plan
+     • Recomputes total_grid_kwh, total_cost_bdt, peak_grid_kwh directly from hourly_plan
      • Generates concise plan_summary and returns exact canonical JSON contract
 ```
 
 ---
 
-## 2. Project Directory Structure
+## 3. Project Directory Structure
 
-- [**docs/**](./docs/) - Official competition rules & guides
-  - [`VIDEO_WALKTHROUGH_SCRIPT.md`](./docs/VIDEO_WALKTHROUGH_SCRIPT.md) - Script for the 3-minute tie-breaker video
-- [**data/**](./data/) - Benchmark and sample datasets
-  - [`sample_request.json`](./data/sample_request.json) - Sample curl payload
-- [**src/**](./src/) - Application source code
-  - [`models.py`](./src/models.py) - Pydantic schemas (Section 07 & 10)
-  - [`guardrails.py`](./src/guardrails.py) - Deterministic validation & sanitization
-  - [`interpreter.py`](./src/interpreter.py) - LLM & fallback directive interpreter
-  - [`optimizer.py`](./src/optimizer.py) - PuLP / HiGHS 24h MILP energy solver
-  - [`main.py`](./src/main.py) - FastAPI application definition
-  - [`static/index.html`](./src/static/index.html) - Interactive Dashboard UI
-- [**tests/**](./tests/) - Test and benchmark suites
-- [`run_samples.py`](./run_samples.py) - Top-level benchmark runner script
-- [`Dockerfile`](./Dockerfile) - Multi-platform container definition
-- [`requirements.txt`](./requirements.txt) - Project dependencies
-- [`.env.example`](./.env.example) - Environment configuration template
+```
+├── .dockerignore
+├── .env.example          <- Environment configuration template
+├── .gitignore            <- Secures keys, virtualenvs, logs, and caches
+├── Dockerfile            <- Multi-platform production container definition
+├── README.md             <- Architecture, API documentation, and credits
+├── requirements.txt      <- Core dependencies (fastapi, uvicorn, pulp, requests, pydantic)
+├── main.py               <- Root execution entrypoint (python main.py / uvicorn)
+├── run_samples.py        <- Automated benchmark verification runner
+│
+├── src/                  <- Application source code
+│   ├── __init__.py
+│   ├── main.py           <- FastAPI app: GET /health, POST /optimize-energy, GET /
+│   ├── models.py         <- Pydantic schemas (Section 07 & 10)
+│   ├── interpreter.py    <- LLM & heuristic directive interpreter
+│   ├── guardrails.py     <- Deterministic validation, sanitization & time parsing
+│   ├── optimizer.py      <- 24-hour MILP energy solver (PuLP / HiGHS)
+│   └── static/
+│       └── index.html    <- Interactive Campus Energy Management Dashboard UI
+│
+├── data/                 <- Benchmark and sample datasets
+│   ├── BUP_CSE_FEST_2026_Preli_Public_Sample_Cases.json
+│   └── sample_request.json
+│
+├── docs/                 <- Guidelines, scripts, and documentation
+│   ├── BUP_CSE_FEST_2026_Participant_Guide_&_Evaluation_Rubric_GridWise_LLM.pdf
+│   ├── BUP_CSE_FEST_2026_Preliminary_Problem_Statement_GridWise_LLM.pdf
+│   ├── FINAL_SUBMISSION_DOCUMENTATION.md / .pdf
+│   └── VIDEO_WALKTHROUGH_SCRIPT.md
+│
+└── tests/                <- Automated test and validation suites
+    ├── __init__.py
+    ├── test_interpreter.py  <- 10/10 scenario directive parsing tests
+    ├── test_optimizer.py    <- Physical battery & microgrid constraint tests
+    └── test_server.py       <- API endpoint tests & error handling
+```
 
 ---
 
-## 3. Quickstart (Local Environment)
+## 4. Quickstart & Local Setup
 
 ### Prerequisites
 - Python 3.10+
@@ -75,8 +132,8 @@ The GridWise solution is engineered as an end-to-end decoupled pipeline where hu
 ### Step-by-Step Setup
 ```bash
 # 1. Clone the repository
-git clone <repository_url>
-cd <repository_folder>
+git clone https://github.com/Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It.git
+cd Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It
 
 # 2. (Optional) Create and activate virtual environment
 python -m venv .venv
@@ -98,9 +155,9 @@ The service will be listening at `http://localhost:8000`.
 
 ---
 
-## 4. Environment Variables & Model Provider Configuration
+## 5. Environment Variables & Model Provider Configuration
 
-Create a `.env` file in the root directory (or pass via environment variables):
+Create a `.env` file in the root directory (or configure system environment variables):
 
 ```bash
 # Service Port
@@ -108,8 +165,9 @@ PORT=8000
 
 # Primary LLM Option A: Puku.sh AI
 PUKU_API_KEY=your_puku_api_key
-# PUKU_BASE_URL=https://api-cli.puku.sh
-# PUKU_MODEL=puku-ai-2.8
+PUKU_BASE_URL=https://api-cli.puku.sh
+PUKU_MODEL=puku-ai-2.8
+PUKU_TIMEOUT=25
 
 # LLM Option B: Google Gemini
 # GEMINI_API_KEY=your_google_gemini_api_key
@@ -121,30 +179,29 @@ PUKU_API_KEY=your_puku_api_key
 # OPENAI_MODEL=llama-3.3-70b-versatile
 ```
 
-> **Note on Secret Safety**: Never commit `.env` or secrets to git. The service safely redacts all secrets and never exposes API keys, raw prompts with credentials, or internal stack traces in logs or HTTP responses.
+> **Security Note**: Never commit `.env` or sensitive API keys to git. The service redacts credentials and never logs or exposes internal keys or stack traces in HTTP responses.
 
 ---
 
-## 5. API Endpoints & Usage
+## 6. API Endpoints & Usage
 
-### 5.1 Interactive Dashboard UI
-If you prefer a visual interface to test scenarios instead of curl:
-- **[View Dashboard (http://localhost:8000/)](http://localhost:8000/)**
+### 6.1 Interactive Dashboard UI
+Visit `http://localhost:8000/` in any browser to inspect hourly dispatch schedules, test operator note scenarios, and view live interactive Chart.js microgrid diagrams.
 
-### 5.2 Health Check (Readiness Probe)
-- **[Check Status (http://localhost:8000/health)](http://localhost:8000/health)**
-
+### 6.2 Health Check (Readiness Probe)
 ```bash
 curl -X GET http://localhost:8000/health
 ```
-**Expected Response (HTTP 200)**:
+**Response (HTTP 200)**:
 ```json
 {
-  "status": "ok"
+  "status": "healthy",
+  "service": "GridWise",
+  "version": "2.0.0"
 }
 ```
 
-### 5.2 Energy Optimization
+### 6.3 Energy Optimization Endpoint
 ```bash
 curl -X POST http://localhost:8000/optimize-energy \
   -H "Content-Type: application/json" \
@@ -153,75 +210,67 @@ curl -X POST http://localhost:8000/optimize-energy \
 
 ---
 
-## 6. Automated Verification & Public Benchmarks
+## 7. Verification & Benchmark Results
 
-Run the built-in benchmark script to test all 10 canonical public sample cases:
+Run the automated benchmark runner to evaluate all 10 canonical public sample cases:
 
 ```bash
-# Run local benchmark across all 10 sample cases
 python run_samples.py
-
-# Run full integration test suites
-python tests/test_optimizer.py
-python tests/test_interpreter.py
-python tests/test_server.py
 ```
 
-### Expected Output
+### Official Benchmark Verification Output
 ```text
 ===========================================================================
 CASE ID      | INTERP   | CALC COST   | EXP COST    | TIME (ms) | STATUS
 ===========================================================================
-SAMPLE-01    | 2 notes  | 38365.00    | 38365.00    | 21.5      | PASS  
-SAMPLE-02    | 1 notes  | 42885.00    | 42885.00    | 17.9      | PASS  
-SAMPLE-03    | 1 notes  | 35480.00    | 35480.00    | 15.4      | PASS  
-SAMPLE-04    | 1 notes  | 40495.00    | 40495.00    | 16.3      | PASS  
-SAMPLE-05    | 1 notes  | 33950.00    | 33950.00    | 16.5      | PASS  
-SAMPLE-06    | 3 notes  | 34090.00    | 34090.00    | 17.0      | PASS  
-SAMPLE-07    | 2 notes  | 38550.00    | 38550.00    | 15.0      | PASS  
-SAMPLE-08    | 2 notes  | 37665.00    | 37665.00    | 13.8      | PASS  
-SAMPLE-09    | 2 notes  | 34873.00    | 34873.00    | 22.5      | PASS  
-SAMPLE-10    | 3 notes  | 41620.00    | 41620.00    | 15.8      | PASS  
+SAMPLE-01    | 2 notes  | 38365.00    | 38365.00    | 20.4      | PASS  
+SAMPLE-02    | 1 notes  | 42885.00    | 42885.00    | 17.6      | PASS  
+SAMPLE-03    | 1 notes  | 35480.00    | 35480.00    | 15.0      | PASS  
+SAMPLE-04    | 1 notes  | 40495.00    | 40495.00    | 15.5      | PASS  
+SAMPLE-05    | 1 notes  | 33950.00    | 33950.00    | 16.1      | PASS  
+SAMPLE-06    | 3 notes  | 34090.00    | 34090.00    | 15.4      | PASS  
+SAMPLE-07    | 2 notes  | 38550.00    | 38550.00    | 14.4      | PASS  
+SAMPLE-08    | 2 notes  | 37665.00    | 37665.00    | 12.7      | PASS  
+SAMPLE-09    | 2 notes  | 34873.00    | 34873.00    | 21.9      | PASS  
+SAMPLE-10    | 3 notes  | 41620.00    | 41620.00    | 15.5      | PASS  
 ===========================================================================
-Summary: 10/10 passed | Total Time: 171.7 ms | Avg: 17.2 ms/case
+Summary: 10/10 passed | Total Time: 164.4 ms | Avg: 16.4 ms/case
 ===========================================================================
 ```
 
 ---
 
-## 7. Docker Fallback Execution
+## 8. Docker Deployment
 
-The project includes a multi-platform, lightweight container image.
-
-### 7.1 Pull and Run Pre-built Image
-```bash
-# Pull from registry
-docker pull pulokakib/gridwise-solver:v1.0
-
-# Run container binding to port 8000
-docker run -d --name gridwise -p 8000:8000 pulokakib/gridwise-solver:v1.0
-
-# Verify health
-curl http://localhost:8000/health
-```
-
-### 7.2 Build Locally from Source
+### 8.1 Build Locally from Source
 ```bash
 docker build -t gridwise-solver:latest .
 docker run -p 8000:8000 gridwise-solver:latest
 ```
 
+### 8.2 Pull and Run Pre-built Image
+```bash
+docker pull pulokakib/gridwise-solver:v1.0
+docker run -d --name gridwise -p 8000:8000 pulokakib/gridwise-solver:v1.0
+```
+
 ---
 
-## 8. Solvers, Libraries & Credits
-- **Web Framework**: [FastAPI](https://fastapi.tiangolo.com/) & [Uvicorn](https://www.uvicorn.org/) for async high-performance HTTP service.
-- **Data Validation**: [Pydantic v2](https://docs.pydantic.dev/) for strict schema contract enforcement.
-- **Optimization Solver**: [PuLP](https://coin-or.github.io/pulp/) with [HiGHS](https://highs.dev/) / COIN-OR CBC for global-optimal MILP solving.
-- **UI & Analytics**: [Chart.js](https://www.chartjs.org/) for the dynamic 24-hour dashboard visualization.
-- **Language Model (LLM)**: Google **Gemini 2.5 Flash** is our primary LLM for operator note interpretation due to its high speed, massive context window, and robust structured JSON capability. The architecture is fully compatible with OpenAI **GPT-4o** / **GPT-4o-mini** out of the box.
-- **AI Coding Assistant**: Development was heavily accelerated using **Google Antigravity** (Advanced Agentic Coding AI) which helped us architect the pipeline, verify edge-case mathematical constraints against the rulebook, and design the interactive UI dashboard.
----
+## 9. Credits & Acknowledgments
 
-## 9. Known Limitations
-- The optimizer operates on a fixed 24-hour discrete horizon ($h \in [0, 23]$).
-- Floating-point calculations adhere to standard IEEE-754 precision, verified well within the competition tolerance of 0.01 kWh and 0.01 BDT.
+- **Team**: **Ai-Will-Fix-It**
+- **Author & Team Lead**: **Pulok Akibuzzaman**
+- **Competition**: **BUP CSE FEST 2026** — *Smart Campus Energy Optimization Challenge (LLM-Assisted Operator Directive Interpretation)*
+
+### Technology & Tool Credits
+- **LLM Platforms**:
+  - **[Puku.sh](https://puku.sh/)**: High-performance AI inference engine providing the fast `puku-ai-2.8` model backend.
+  - **[Google Gemini](https://ai.google.dev/)**: State-of-the-art multi-modal language model providing structured JSON directive interpretation.
+  - **[OpenAI](https://platform.openai.com/) / [Groq](https://groq.com/)**: High-speed secondary LLM inference support.
+- **AI Coding Assistant**:
+  - **Google Antigravity**: Advanced Agentic Coding AI from Google DeepMind, instrumental in architecting the decoupled pipeline, verifying complex microgrid constraints against competition rubrics, and rapid engineering.
+- **Mathematical Optimization & Web Stack**:
+  - **[FastAPI](https://fastapi.tiangolo.com/) & [Uvicorn](https://www.uvicorn.org/)**: Asynchronous, high-throughput microservice framework.
+  - **[PuLP](https://coin-or.github.io/pulp/) & [HiGHS](https://highs.dev/)**: High-performance open-source Mixed-Integer Linear Programming solvers.
+  - **[Pydantic v2](https://docs.pydantic.dev/)**: Robust data parsing and strict schema validation.
+  - **[Chart.js](https://www.chartjs.org/)**: Visualizations for 24-hour campus energy scheduling.
