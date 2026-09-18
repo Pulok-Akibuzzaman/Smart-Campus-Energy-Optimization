@@ -4,6 +4,8 @@ Operator-note interpreter with a provider failover chain:
     Groq      -> primary, fastest, generous free tier
     Gemini    -> fallback #1
     OpenRouter-> fallback #2 (free models)
+    Puku.sh   -> fallback #3 (OpenAI-compatible; requires browser-session auth
+                  — currently 401s with the pk_live_ bearer token alone)
     Regex     -> deterministic safety net (NEVER crashes)
 
 The LLM call is mandatory in real use (rubric requirement). The regex path
@@ -102,10 +104,40 @@ async def _call_openrouter(client: httpx.AsyncClient, user_prompt: str) -> Optio
     return data["choices"][0]["message"]["content"]
 
 
+async def _call_puku(client: httpx.AsyncClient, user_prompt: str) -> Optional[str]:
+    """Puku.sh provider — OpenAI-compatible surface at /v1/chat/completions.
+
+    NOTE: Puku currently requires browser-session auth; the pk_live_ token
+    alone returns 401 "Session expired" on this endpoint. Wired in so that if
+    Puku later exposes a bearer-API-key flow, no code change is needed: just
+    keep `puku` in LLM_PROVIDER_ORDER.
+    """
+    if not CFG.PUKU_API_KEY or CFG.PUKU_API_KEY.startswith("your_"):
+        return None
+    url = "https://api.puku.sh/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {CFG.PUKU_API_KEY}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": CFG.PUKU_MODEL,
+        "temperature": 0,
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ],
+    }
+    resp = await client.post(url, headers=headers, json=payload)
+    resp.raise_for_status()
+    data = resp.json()
+    return data["choices"][0]["message"]["content"]
+
+
 PROVIDER_DISPATCH = {
     "groq": _call_groq,
     "gemini": _call_gemini,
     "openrouter": _call_openrouter,
+    "puku": _call_puku,
 }
 
 

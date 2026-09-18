@@ -31,6 +31,7 @@ class Config:
     GROQ_API_KEY: Optional[str] = os.getenv("GROQ_API_KEY")
     GEMINI_API_KEY: Optional[str] = os.getenv("GEMINI_API_KEY")
     OPENROUTER_API_KEY: Optional[str] = os.getenv("OPENROUTER_API_KEY")
+    PUKU_API_KEY: Optional[str] = os.getenv("PUKU_API_KEY")
 
     # Provider fallback chain — comma-separated
     LLM_PROVIDER_ORDER: str = os.getenv("LLM_PROVIDER_ORDER", "groq,gemini,openrouter")
@@ -41,6 +42,7 @@ class Config:
     OPENROUTER_MODEL: str = os.getenv(
         "OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct:free"
     )
+    PUKU_MODEL: str = os.getenv("PUKU_MODEL", "gpt-oss-20b")
 
     # Service
     HOST: str = os.getenv("HOST", "0.0.0.0")
@@ -63,6 +65,7 @@ class Config:
             "openrouter": bool(
                 cls.OPENROUTER_API_KEY and not cls.OPENROUTER_API_KEY.startswith("your_")
             ),
+            "puku": bool(cls.PUKU_API_KEY and not cls.PUKU_API_KEY.startswith("your_")),
         }
         return {
             "providers_in_order": [
@@ -73,6 +76,7 @@ class Config:
                 "groq": cls.GROQ_MODEL,
                 "gemini": cls.GEMINI_MODEL,
                 "openrouter": cls.OPENROUTER_MODEL,
+                "puku": cls.PUKU_MODEL,
             },
             "timeout_s": cls.LLM_TIMEOUT_SECONDS,
             "port": cls.PORT,

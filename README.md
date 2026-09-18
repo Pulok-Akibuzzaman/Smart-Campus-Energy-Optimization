@@ -158,10 +158,12 @@ curl -s -X POST http://127.0.0.1:8000/optimize-energy \
 | `GROQ_API_KEY` | Groq API key (primary LLM) | unset |
 | `GEMINI_API_KEY` | Gemini API key (fallback #1) | unset |
 | `OPENROUTER_API_KEY` | OpenRouter API key (fallback #2) | unset |
+| `PUKU_API_KEY` | Puku.sh API key (fallback #3; currently browser-session auth) | unset |
 | `LLM_PROVIDER_ORDER` | Comma-separated fallback chain | `groq,gemini,openrouter` |
 | `GROQ_MODEL` | Groq model | `llama-3.1-8b-instant` |
 | `GEMINI_MODEL` | Gemini model | `gemini-1.5-flash` |
 | `OPENROUTER_MODEL` | OpenRouter model | `meta-llama/llama-3.1-8b-instruct:free` |
+| `PUKU_MODEL` | Puku.sh model | `gpt-oss-20b` |
 | `HOST` | Bind host | `0.0.0.0` |
 | `PORT` | Bind port | `8000` |
 | `LOG_LEVEL` | `DEBUG`/`INFO`/`WARNING`/`ERROR` | `INFO` |
