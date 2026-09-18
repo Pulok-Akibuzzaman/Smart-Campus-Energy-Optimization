@@ -211,8 +211,9 @@ docker run -p 8000:8000 gridwise-solver:latest
 - **Web Framework**: [FastAPI](https://fastapi.tiangolo.com/) & [Uvicorn](https://www.uvicorn.org/) for async high-performance HTTP service.
 - **Data Validation**: [Pydantic v2](https://docs.pydantic.dev/) for strict schema contract enforcement.
 - **Optimization Solver**: [PuLP](https://coin-or.github.io/pulp/) with [HiGHS](https://highs.dev/) / COIN-OR CBC for global-optimal MILP solving.
-- **Language Models**: Google Gemini 2.5 Flash / OpenAI GPT-4o-mini / Groq LLaMA 3.3.
-
+- **UI & Analytics**: [Chart.js](https://www.chartjs.org/) for the dynamic 24-hour dashboard visualization.
+- **Language Model (LLM)**: Google **Gemini 2.5 Flash** is our primary LLM for operator note interpretation due to its high speed, massive context window, and robust structured JSON capability. The architecture is fully compatible with OpenAI **GPT-4o** / **GPT-4o-mini** out of the box.
+- **AI Coding Assistant**: Development was heavily accelerated using **Google Antigravity** (Advanced Agentic Coding AI) which helped us architect the pipeline, verify edge-case mathematical constraints against the rulebook, and design the interactive UI dashboard.
 ---
 
 ## 9. Known Limitations
