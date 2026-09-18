@@ -18,7 +18,7 @@ Every hour, the BUP campus cafeteria buys electricity from the grid — even whe
                 │   Operator Notes → LLM Chain → Validator →  │
                 │   LP Optimizer → Hourly Plan → Replay Check │
                 │                                             │
-                │   34/34 tests · 0.00 BDT diff · ~6 ms solve  │
+                │   37/37 tests · 0.00 BDT diff · ~6 ms solve  │
                 │                                             │
                 └─────────────────────────────────────────────┘
 ```
@@ -264,10 +264,10 @@ PYTHONPATH=src pytest tests/ -v
 | `tests/test_solver_fallback.py` | Defence-in-depth: scipy fallback works when PuLP is unavailable | 1 |
 | `tests/test_validator.py` | 17 hand-rolled malformed inputs must coerce to no_op without crashing | 17 |
 | `tests/test_provider_chain.py` | 7 mocked failover scenarios across the LLM provider chain | 7 |
-| `tests/test_public_samples.py` | All 10 public cases — replay-valid + cost comparison | 1 (parametrized) |
-| `tests/test_load_burst.py` | 20-request latency burst (requires service running) | 1 |
+| `tests/public_samples.py` | CLI: full determinism harness across all 10 public cases (cost-compare, replay-validate) | (script) |
+| `tests/load_burst.py` | CLI: 20-request latency burst against a running service | (script) |
 
-**Total: 39 deterministic tests + 1 live burst.**
+**Total: 37 deterministic pytest tests + 2 standalone CLI scripts (live API required).**
 
 ---
 
