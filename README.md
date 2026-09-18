@@ -123,35 +123,120 @@ GridWise is an end-to-end, resilient energy scheduling and optimization service 
 
 ---
 
-## 4. Quickstart & Local Setup
+## 4. Step-by-Step Guide: How to Run
 
-### Prerequisites
-- Python 3.10+
-- Git
-
-### Step-by-Step Setup
+### Step 1: Clone the Repository
 ```bash
-# 1. Clone the repository
 git clone https://github.com/Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It.git
 cd Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It
-
-# 2. (Optional) Create and activate virtual environment
-python -m venv .venv
-# On Windows:
-.venv\Scripts\activate
-# On Linux/macOS:
-source .venv/bin/activate
-
-# 3. Install dependencies
-pip install -r requirements.txt
-
-# 4. Start the API service
-python main.py
-# Or with uvicorn:
-uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-The service will be listening at `http://localhost:8000`.
+### Step 2: Set Up Virtual Environment (Recommended)
+**On Windows (PowerShell / Command Prompt):**
+```powershell
+python -m venv .venv
+.venv\Scripts\activate
+```
+**On Linux / macOS:**
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### Step 3: Install Required Dependencies
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+### Step 4: Configure Environment Variables
+Copy `.env.example` to create your `.env` file:
+```bash
+# On Windows (PowerShell):
+Copy-Item .env.example .env
+
+# On Linux / macOS:
+cp .env.example .env
+```
+*(Optional)* Open `.env` in a text editor to configure your preferred LLM API keys (Puku.sh, Google Gemini, or OpenAI/Groq). If no API key is provided, the service runs completely offline using the built-in deterministic heuristic fallback engine.
+
+### Step 5: Start the API Service
+Run the service using either of the following commands:
+
+**Option A — Direct Python Runner:**
+```bash
+python main.py
+```
+
+**Option B — Uvicorn Server:**
+```bash
+uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+The service will start listening at: `http://localhost:8000`
+
+---
+
+### Step 6: Verify the Running Service
+
+#### 1. Open the Interactive Web Dashboard
+Open your web browser and navigate to:
+- **Interactive UI Dashboard**: [http://localhost:8000/](http://localhost:8000/)
+- **Swagger / OpenAPI Documentation**: [http://localhost:8000/docs](http://localhost:8000/docs)
+
+#### 2. Test the Health Endpoint (`GET /health`)
+```bash
+curl -X GET http://localhost:8000/health
+```
+*Expected Response (HTTP 200):*
+```json
+{
+  "status": "healthy",
+  "service": "GridWise",
+  "version": "2.0.0"
+}
+```
+
+#### 3. Test Energy Optimization (`POST /optimize-energy`)
+```bash
+curl -X POST http://localhost:8000/optimize-energy \
+  -H "Content-Type: application/json" \
+  -d @data/sample_request.json
+```
+
+---
+
+### Step 7: Run Automated Verification Benchmarks
+To run the automated benchmark runner against all 10 official public scenarios:
+```bash
+python run_samples.py
+```
+
+To run individual test suites:
+```bash
+python tests/test_optimizer.py
+python tests/test_interpreter.py
+python tests/test_server.py
+```
+
+---
+
+### Step 8: Expose Publicly for Evaluation (Hackathon Submission)
+If you need a live public URL for the hackathon evaluation:
+
+- **Using ngrok**:
+  ```bash
+  ngrok http 8000
+  ```
+- **Using localtunnel**:
+  ```bash
+  npx localtunnel --port 8000
+  ```
+- **Using Docker**:
+  ```bash
+  docker build -t gridwise-solver:latest .
+  docker run -p 8000:8000 gridwise-solver:latest
+  ```
 
 ---
 
