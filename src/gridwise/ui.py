@@ -706,3 +706,155 @@ async def docker_status() -> Dict[str, Any]:
         "containers": out_ps.strip().splitlines() if rc_ps == 0 else [],
         "containers_error": err_ps.strip() if rc_ps != 0 else None,
     }
+
+
+# ─────────────────────────── Directive-shape diff ────────────────────
+
+
+@router.post("/directive-diff/{case_id}")
+async def directive_diff(case_id: str, mode: str = Query("llm")) -> Dict[str, Any]:
+    """Per-note comparison: LLM-emitted directive vs expected directive.
+
+    Returns one row per note with:
+      - expected directive_type / hours / factor / structured_adjustment
+      - actual directive_type / hours / factor / structured_adjustment
+      - a 'match' flag for the canonical fields
+      - a 'severity' tag (exact | partial | mismatch | extra | missing)
+    """
+    samples = _load_samples()
+    if not samples:
+        return {"error": "samples not found"}
+    case = next((c for c in samples if c["id"] == case_id), None)
+    if not case:
+        return {"error": f"case {case_id} not found"}
+
+    expected_directives = case["expected_output"]["directive_interpretation"]
+
+    if mode == "math":
+        # Math path doesn't run the LLM — assume directives match trivially.
+        return {
+            "case_id": case_id,
+            "mode": "math",
+            "rows": [
+                {
+                    "note_index": d["note_index"],
+                    "note": case["input"]["operator_notes"][d["note_index"]],
+                    "expected": d,
+                    "actual": d,
+                    "match": True,
+                    "severity": "exact (math path bypasses LLM)",
+                }
+                for d in expected_directives
+            ],
+        }
+
+    # LLM path: hit the live endpoint
+    base_url = f"http://127.0.0.1:{CFG.PORT}/optimize-energy"
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            r = await client.post(base_url, json=case["input"])
+        body = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
+        actual_directives = body.get("directive_interpretation", [])
+    except Exception as e:
+        return {"error": str(e)}
+
+    rows = []
+    for d in expected_directives:
+        ni = d["note_index"]
+        note = case["input"]["operator_notes"][ni]
+        actual = next((a for a in actual_directives if a.get("note_index") == ni), None)
+
+        if actual is None:
+            rows.append({
+                "note_index": ni,
+                "note": note,
+                "expected": d,
+                "actual": None,
+                "match": False,
+                "severity": "missing",
+            })
+            continue
+
+        exp_type = d["directive_type"]
+        act_type = actual.get("directive_type")
+        exp_adj = d.get("structured_adjustment") or {}
+        act_adj = actual.get("structured_adjustment") or {}
+
+        # Compare on canonical shape: directive_type + hours + (factor | minimum_energy_kwh | max_grid_kwh)
+        same_type = exp_type == act_type
+        exp_hours = exp_adj.get("hours") if isinstance(exp_adj, dict) else None
+        act_hours = act_adj.get("hours") if isinstance(act_adj, dict) else None
+        same_hours = exp_hours == act_hours
+
+        # Scalar field varies by directive type
+        scalar_match = True
+        if exp_type == "solar_reduction":
+            scalar_match = exp_adj.get("factor") == act_adj.get("factor")
+        elif exp_type == "minimum_battery_reserve":
+            scalar_match = exp_adj.get("minimum_energy_kwh") == act_adj.get("minimum_energy_kwh")
+        elif exp_type == "max_grid_window":
+            scalar_match = exp_adj.get("max_grid_kwh") == act_adj.get("max_grid_kwh")
+
+        applies_ok = (
+            (d["applies"] and actual.get("applies") is True)
+            or (not d["applies"] and actual.get("applies") is False)
+        )
+
+        severity = (
+            "exact" if (same_type and same_hours and scalar_match and applies_ok)
+            else "partial" if (same_type and same_hours)
+            else "mismatch"
+        )
+        rows.append({
+            "note_index": ni,
+            "note": note,
+            "expected": d,
+            "actual": actual,
+            "match": severity == "exact",
+            "severity": severity,
+        })
+
+    matched = sum(1 for r in rows if r["match"])
+    return {
+        "case_id": case_id,
+        "mode": mode,
+        "rows": rows,
+        "matched": matched,
+        "total": len(rows),
+    }
+
+
+# ─────────────────────────── Export-to-file ──────────────────────────
+
+
+@router.post("/export-response/{case_id}")
+async def export_response(case_id: str, mode: str = Query("llm")) -> Dict[str, Any]:
+    """Same as run_sample but returns a downloadable-friendly JSON with
+    a timestamped filename suggestion. Used by the UI's Export button.
+    """
+    samples = _load_samples()
+    if not samples:
+        return {"error": "samples not found"}
+    case = next((c for c in samples if c["id"] == case_id), None)
+    if not case:
+        return {"error": f"case {case_id} not found"}
+
+    base_url = f"http://127.0.0.1:{CFG.PORT}/optimize-energy"
+    if mode == "math":
+        return {"error": "math mode does not produce a single OptimizeResponse; use /run-sample/{id}?mode=math"}
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            r = await client.post(base_url, json=case["input"])
+        body = r.json() if r.headers.get("content-type", "").startswith("application/json") else {"raw": r.text[:2000]}
+    except Exception as e:
+        return {"error": str(e)}
+
+    import datetime
+    ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    return {
+        "filename_suggestion": f"gridwise_{case_id}_{mode}_{ts}.json",
+        "response": body,
+        "status": r.status_code,
+        "fetched_at": ts,
+    }

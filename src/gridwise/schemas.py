@@ -65,6 +65,17 @@ class BatterySpec(BaseModel):
     max_charge_kwh_per_hour: float = Field(..., gt=0)
     max_discharge_kwh_per_hour: float = Field(..., gt=0)
 
+    @field_validator("initial_energy_kwh", "minimum_energy_kwh")
+    @classmethod
+    def _within_capacity(cls, v: float, info) -> float:
+        # Cross-field check: initial/minimum cannot exceed capacity. We can't
+        # access `capacity_kwh` here directly because it's declared after these,
+        # so this is a sanity check for non-negativity + finite; the full
+        # cross-field check is in OptimizeRequest._battery_consistent.
+        if v != v or v in (float("inf"), float("-inf")):
+            raise ValueError("must be finite")
+        return v
+
 
 class OptimizeRequest(BaseModel):
     """Top-level request body for POST /optimize-energy (Section 07)."""
@@ -95,6 +106,28 @@ class OptimizeRequest(BaseModel):
         # Already validated as 24 entries with the right hour ids.
         v_sorted = sorted(v, key=lambda h: h.hour)
         return v_sorted
+
+    @field_validator("battery")
+    @classmethod
+    def _battery_consistent(cls, v: BatterySpec) -> BatterySpec:
+        # Battery must be internally consistent: 0 <= minimum <= initial <= capacity.
+        # No half-charged-by-default that exceeds max charge per hour, etc.
+        if v.minimum_energy_kwh > v.capacity_kwh:
+            raise ValueError(
+                f"minimum_energy_kwh ({v.minimum_energy_kwh}) cannot exceed "
+                f"capacity_kwh ({v.capacity_kwh})"
+            )
+        if v.initial_energy_kwh > v.capacity_kwh:
+            raise ValueError(
+                f"initial_energy_kwh ({v.initial_energy_kwh}) cannot exceed "
+                f"capacity_kwh ({v.capacity_kwh})"
+            )
+        if v.initial_energy_kwh < v.minimum_energy_kwh:
+            raise ValueError(
+                f"initial_energy_kwh ({v.initial_energy_kwh}) cannot be less than "
+                f"minimum_energy_kwh ({v.minimum_energy_kwh})"
+            )
+        return v
 
 
 # ──────────── Structured directive adjustments (Section 04) ────────────

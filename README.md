@@ -209,21 +209,32 @@ Constraints: energy balance, battery dynamics (E[h] = E[h−1] + charge − disc
 
 ## 7. Testing
 
+Three test suites cover the full pipeline. All are pure-Python and run without pytest.
+
 ```bash
-# Math path only — feeds the expected directive list into the optimizer,
-# tests correctness + cost quality against the reference.
+# 1) End-to-end optimizer against public samples (math path).
+#    Feeds the EXPECTED directive list to bypass the LLM and tests the LP.
 PYTHONPATH=src python tests/test_public_samples.py
+# Expected: 10/10 cases valid, avg quality_ratio 0.999
+
+# 2) Validator / guardrail unit tests.
+#    Hand-rolled malformed inputs must coerce to no_op.
+PYTHONPATH=src python tests/test_validator.py
+# Expected: 17/17 tests passed
+
+# 3) Provider chain failover tests.
+#    Mocks httpx and asserts groq → gemini → openrouter → regex safety net.
+PYTHONPATH=src python tests/test_provider_chain.py
+# Expected: 7/7 tests passed
+
+# 4) Live load burst (requires the service running).
+#    20 sequential requests; reports p50/p95/max + status counts.
+ENABLE_UI=true PYTHONPATH=src python -m uvicorn gridwise.app:app --host 127.0.0.1 --port 8000 &
+PYTHONPATH=src python tests/test_load_burst.py 20
+# Expected: 0 errors, p95 < 30 s (LLM path)
 ```
 
-Expected output:
-
-```
-[OK ] SAMPLE-01  Solar cleaning + distractor
-[OK ] SAMPLE-02  Battery charging maintenance
-...
-Summary: 10/10 cases valid (math only)
-         avg quality_ratio: 0.999
-```
+Combined: **34 deterministic tests + 20-request live burst** — all green.
 
 ---
 
@@ -286,7 +297,9 @@ Tabs:
 |---|---|
 | 🩺 **Service** | PID, uptime, health latency, config keys present |
 | 📋 **Schema validation** | Runs 8 malformed payloads against `/optimize-energy` |
-| 🎯 **Public samples** | Pick a case, run via LLM or math mode, see cost diff vs reference |
+| 🎯 **Public samples** | Pick a case, run via LLM or math mode, see cost diff vs reference; **Run & export** downloads the full response JSON |
+| 🔍 **Directive diff** | Per-note comparison of LLM interpretation vs reference (exact / partial / mismatch) |
+| 📦 **Export** | Download the `OptimizeResponse` JSON for a single case, with timestamped filename |
 | 🛡️ **Guardrails** | 9 hand-rolled bad-input unit tests on `validate_all` |
 | ⚙️ **Optimizer** | All 10 cases math-only, summary stats + cost comparison chart |
 | 🔁 **Replay (EOD)** | E[23] vs initial for every case (battery neutrality) |

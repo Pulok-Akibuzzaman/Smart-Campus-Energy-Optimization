@@ -49,6 +49,8 @@
       <button data-tab="service" class="tab-btn w-full text-left px-3 py-2 rounded hover:bg-slate-800">🩺 Service</button>
       <button data-tab="schema" class="tab-btn w-full text-left px-3 py-2 rounded hover:bg-slate-800">📋 Schema validation</button>
       <button data-tab="samples" class="tab-btn w-full text-left px-3 py-2 rounded hover:bg-slate-800">🎯 Public samples</button>
+      <button data-tab="diff" class="tab-btn w-full text-left px-3 py-2 rounded hover:bg-slate-800">🔍 Directive diff</button>
+      <button data-tab="export" class="tab-btn w-full text-left px-3 py-2 rounded hover:bg-slate-800">📦 Export</button>
       <button data-tab="guardrails" class="tab-btn w-full text-left px-3 py-2 rounded hover:bg-slate-800">🛡️ Guardrails</button>
       <button data-tab="optimizer" class="tab-btn w-full text-left px-3 py-2 rounded hover:bg-slate-800">⚙️ Optimizer</button>
       <button data-tab="replay" class="tab-btn w-full text-left px-3 py-2 rounded hover:bg-slate-800">🔁 Replay (EOD)</button>
@@ -98,8 +100,36 @@
             <option value="math">Math mode (expected directives)</option>
           </select>
           <button class="btn" onclick="runSample()">Run case</button>
+          <button class="btn btn-ghost" onclick="runSampleAndExport()">Run &amp; export</button>
         </div>
         <div id="sample-output" class="mt-4"></div>
+      </div>
+    </section>
+
+    <!-- DIRECTIVE DIFF -->
+    <section data-section="diff" class="tab-section hidden space-y-4">
+      <div class="card">
+        <h2>Per-note directive diff</h2>
+        <p class="sub">For each operator note, shows whether the LLM's interpretation matches the reference. Useful for spotting systematic LLM mistakes (e.g. "must not discharge" being misread as <code>no_op</code>).</p>
+        <div class="flex flex-wrap gap-2 items-center">
+          <select id="diff-select" class="bg-slate-700 text-slate-100 px-3 py-2 rounded font-mono text-sm"></select>
+          <button class="btn" onclick="runDiff()">Compare</button>
+        </div>
+        <div id="diff-summary" class="mt-4"></div>
+        <div id="diff-output" class="mt-4"></div>
+      </div>
+    </section>
+
+    <!-- EXPORT -->
+    <section data-section="export" class="tab-section hidden space-y-4">
+      <div class="card">
+        <h2>Export response JSON</h2>
+        <p class="sub">Run a single case end-to-end and download the full <code>OptimizeResponse</code> as a JSON file. Useful for sharing evidence of a run, or attaching to a bug report.</p>
+        <div class="flex flex-wrap gap-2 items-center">
+          <select id="export-select" class="bg-slate-700 text-slate-100 px-3 py-2 rounded font-mono text-sm"></select>
+          <button class="btn" onclick="runExport()">Fetch &amp; download</button>
+        </div>
+        <div id="export-output" class="mt-4"></div>
       </div>
     </section>
 
@@ -298,6 +328,92 @@ async function runSample() {
   document.getElementById("sample-output").innerHTML =
     `${pill(ok)} <span class="text-sm text-slate-400 ml-2">${body.elapsed_ms ?? 0} ms</span>${summary}
      <pre class="bg-slate-950 border border-slate-700 rounded p-3 mt-3 text-slate-200 overflow-auto max-h-[28rem]">${htmlEscape(JSON.stringify(body, null, 2))}</pre>`;
+}
+
+// ──────────── Tab: Directive Diff ────────────
+{
+  // Populate the diff selector from the same list as the samples tab.
+  const diffSel = document.getElementById("diff-select");
+  const expSel = document.getElementById("export-select");
+  const srcSel = document.getElementById("sample-select");
+  function mirror(src, dst) {
+    [...src.options].forEach(o => {
+      const c = document.createElement("option");
+      c.value = o.value; c.textContent = o.textContent;
+      dst.appendChild(c);
+    });
+  }
+  mirror(srcSel, diffSel);
+  mirror(srcSel, expSel);
+}
+
+async function runDiff() {
+  const id = document.getElementById("diff-select").value;
+  document.getElementById("diff-output").innerHTML = `<span class="text-slate-400 text-sm">Comparing ${id}…</span>`;
+  const { body } = await api(`/ui/api/directive-diff/${id}?mode=llm`, {method: "POST"});
+  if (body.error) {
+    document.getElementById("diff-output").innerHTML = `<div class="p-4 rounded bg-red-900/40">${body.error}</div>`;
+    return;
+  }
+  document.getElementById("diff-summary").innerHTML =
+    `<div class="grid grid-cols-3 gap-3">
+       <div class="card"><div class="stat-num text-emerald-400">${body.matched}/${body.total}</div><div class="stat-label">exact match</div></div>
+       <div class="card"><div class="stat-num text-blue-400">${body.total - body.matched}</div><div class="stat-label">partial / mismatch</div></div>
+       <div class="card"><div class="stat-num">${body.case_id}</div><div class="stat-label">case</div></div>
+     </div>`;
+  const sevPill = (s) => {
+    if (s === "exact") return `<span class="pill pill-ok">exact</span>`;
+    if (s === "partial") return `<span class="pill pill-warn">partial</span>`;
+    if (s === "missing") return `<span class="pill pill-fail">missing</span>`;
+    return `<span class="pill pill-fail">mismatch</span>`;
+  };
+  let table = `<table class="w-full mt-4"><thead><tr>
+    <th>#</th><th>Note</th><th>Expected type</th><th>Actual type</th><th>Severity</th>
+  </tr></thead><tbody>`;
+  for (const r of body.rows) {
+    table += `<tr>
+      <td class="font-mono">${r.note_index}</td>
+      <td class="text-xs">${htmlEscape(r.note)}</td>
+      <td class="font-mono text-xs">${htmlEscape(r.expected?.directive_type ?? "—")}</td>
+      <td class="font-mono text-xs">${htmlEscape(r.actual?.directive_type ?? "—")}</td>
+      <td>${sevPill(r.severity)}</td>
+    </tr>`;
+  }
+  table += "</tbody></table>";
+  table += `<details class="mt-4"><summary class="cursor-pointer text-slate-400 text-sm">Show full expected vs actual JSON</summary>
+            <pre class="bg-slate-950 border border-slate-700 rounded p-3 mt-2 overflow-auto max-h-[40rem]">${htmlEscape(JSON.stringify(body.rows, null, 2))}</pre></details>`;
+  document.getElementById("diff-output").innerHTML = table;
+}
+
+// ──────────── Tab: Export ────────────
+async function runExport() {
+  const id = document.getElementById("export-select").value;
+  document.getElementById("export-output").innerHTML = `<span class="text-slate-400 text-sm">Fetching ${id}…</span>`;
+  const { body } = await api(`/ui/api/export-response/${id}?mode=llm`, {method: "POST"});
+  if (body.error) {
+    document.getElementById("export-output").innerHTML = `<div class="p-4 rounded bg-red-900/40">${body.error}</div>`;
+    return;
+  }
+  // Trigger download in the browser
+  const blob = new Blob([JSON.stringify(body.response, null, 2)], {type: "application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = body.filename_suggestion;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  document.getElementById("export-output").innerHTML =
+    `<div class="p-4 rounded bg-emerald-900/40 border border-emerald-700">
+       ✓ Downloaded <code>${body.filename_suggestion}</code> (status ${body.status}, fetched ${body.fetched_at})
+     </div>`;
+}
+
+// "Run & export" shortcut on the Samples tab: run the case AND auto-download.
+async function runSampleAndExport() {
+  await runSample();
+  await runExport();
 }
 
 // ──────────── Tab: Guardrails ────────────
