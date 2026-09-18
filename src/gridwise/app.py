@@ -14,7 +14,7 @@ from typing import List
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse, Response
 from pydantic import ValidationError
 
 from .config import CFG
@@ -91,6 +91,33 @@ async def global_exception_handler(request: Request, exc: Exception):
 @app.get("/health", response_model=HealthResponse, tags=["health"])
 async def health() -> HealthResponse:
     return HealthResponse(status="ok")
+
+
+# ──────────── Friendly root + silent favicon ───────────
+# Browsers (and Docker health-checks) auto-request GET / and GET /favicon.ico.
+# Without these handlers FastAPI returns {"detail":"Not Found"} which looks like
+# a real bug in logs. /  -> redirect to /docs (the natural landing page).
+# /favicon.ico -> empty 204 (we don't ship a real icon; this silences browsers).
+
+
+@app.get("/", include_in_schema=False)
+async def root():
+    return RedirectResponse(url="/docs", status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    # 1x1 transparent PNG, base64. Tiny and self-contained.
+    import base64
+
+    png_b64 = (
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgAAIAAAUAAen6l8gAAAAASUVORK5CYII="
+    )
+    return Response(
+        content=base64.b64decode(png_b64),
+        media_type="image/png",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
 
 
 @app.post(

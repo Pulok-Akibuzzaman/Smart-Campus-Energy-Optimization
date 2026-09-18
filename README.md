@@ -104,7 +104,18 @@ PYTHONPATH=src python tests/test_public_samples.py
 | Response | `200 {"status": "ok"}` |
 | Latency target | < 60 s from service start |
 
-### 3.2 `POST /optimize-energy`
+### 3.2 `GET /` (root redirect)
+
+`GET /` returns a **307 Temporary Redirect** to `/docs` so any browser/Docker
+health-check that hits the root lands on the API docs instead of seeing
+`{"detail": "Not Found"}` in the logs.
+
+### 3.3 `GET /favicon.ico`
+
+Returns a 1×1 transparent PNG (68 bytes, `Cache-Control: max-age=86400`)
+to silence browser favicon auto-requests without shipping a real icon.
+
+### 3.4 `POST /optimize-energy`
 
 Accepts one scenario JSON per the Problem Statement Section 07, returns the directive interpretation plus the optimized 24-hour plan per Section 10.
 
@@ -141,7 +152,7 @@ curl -s -X POST http://127.0.0.1:8000/optimize-energy \
   -d @request.json | jq .
 ```
 
-### 3.3 HTTP status codes
+### 3.5 HTTP status codes
 
 | Code | Meaning |
 |---|---|
