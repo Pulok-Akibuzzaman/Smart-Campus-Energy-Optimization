@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>GridWise Debug Console</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    /* Inline fallback if Tailwind CDN is blocked */
+    body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #e2e8f0; }
+    .tab-active { background: #1e40af !important; color: white !important; }
+    pre { white-space: pre-wrap; word-break: break-word; font-size: 12px; line-height: 1.45; }
+    .pill { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .pill-ok { background: #065f46; color: #d1fae5; }
+    .pill-fail { background: #7f1d1d; color: #fee2e2; }
+    .pill-warn { background: #78350f; color: #fef3c7; }
+    .pill-info { background: #1e3a8a; color: #dbeafe; }
+    table { border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 6px 10px; border-bottom: 1px solid #334155; text-align: left; }
+    th { background: #1e293b; color: #94a3b8; font-weight: 600; }
+    tr:hover td { background: #1e293b; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; }
+    .card h2 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    .card .sub { font-size: 13px; color: #94a3b8; margin-bottom: 16px; }
+    .btn { background: #2563eb; color: white; padding: 8px 14px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; font-size: 13px; }
+    .btn:hover { background: #1d4ed8; }
+    .btn:disabled { background: #475569; cursor: not-allowed; }
+    .btn-ghost { background: transparent; border: 1px solid #475569; }
+    .btn-ghost:hover { background: #334155; }
+    .stat-num { font-size: 28px; font-weight: 800; }
+    .stat-label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+  </style>
+</head>
+<body class="min-h-screen flex">
+  <!-- ──────────── Sidebar ──────────── -->
+  <aside class="w-64 bg-slate-900 border-r border-slate-700 flex-shrink-0 sticky top-0 h-screen overflow-y-auto">
+    <div class="p-5 border-b border-slate-700">
+      <div class="text-xs text-slate-400 uppercase tracking-wider">GridWise</div>
+      <div class="text-lg font-bold text-blue-400">Debug Console</div>
+      <div class="mt-3 text-xs text-slate-400">
+        <div>PID: <span id="svc-pid" class="text-slate-200 font-mono">…</span></div>
+        <div>Uptime: <span id="svc-uptime" class="text-slate-200 font-mono">…</span></div>
+        <div>Health: <span id="svc-health" class="pill pill-info">…</span></div>
+      </div>
+    </div>
+
+    <nav id="tabs" class="p-2 space-y-1 text-sm">
+      <button data-tab="service" class="tab-btn w-full text-left px-3 py-2 rounded hover:bg-slate-800">🩺 Service</button>
+      <button data-tab="schema" class="tab-btn w-full text-left px-3 py-2 rounded hover:bg-slate-800">📋 Schema validation</button>
+      <button data-tab="samples" class="tab-btn w-full text-left px-3 py-2 rounded hover:bg-slate-800">🎯 Public samples</button>
+      <button data-tab="diff" class="tab-btn w-full text-left px-3 py-2 rounded hover:bg-slate-800">🔍 Directive diff</button>
+      <button data-tab="export" class="tab-btn w-full text-left px-3 py-2 rounded hover:bg-slate-800">📦 Export</button>
+      <button data-tab="guardrails" class="tab-btn w-full text-left px-3 py-2 rounded hover:bg-slate-800">🛡️ Guardrails</button>
+      <button data-tab="optimizer" class="tab-btn w-full text-left px-3 py-2 rounded hover:bg-slate-800">⚙️ Optimizer</button>
+      <button data-tab="replay" class="tab-btn w-full text-left px-3 py-2 rounded hover:bg-slate-800">🔁 Replay (EOD)</button>
+      <button data-tab="logs" class="tab-btn w-full text-left px-3 py-2 rounded hover:bg-slate-800">🔒 Logs &amp; secrets</button>
+      <button data-tab="perf" class="tab-btn w-full text-left px-3 py-2 rounded hover:bg-slate-800">⏱️ Performance</button>
+      <button data-tab="docker" class="tab-btn w-full text-left px-3 py-2 rounded hover:bg-slate-800">🐳 Docker</button>
+    </nav>
+
+    <div class="p-4 text-xs text-slate-500 border-t border-slate-700 mt-4">
+      Local-only. Set <code class="bg-slate-800 px-1 rounded">ENABLE_UI=true</code> at startup.
+    </div>
+  </aside>
+
+  <!-- ──────────── Content ──────────── -->
+  <main class="flex-1 p-6 max-w-6xl">
+
+    <!-- SERVICE -->
+    <section data-section="service" class="tab-section space-y-4">
+      <div class="card">
+        <h2>Service status</h2>
+        <p class="sub">Snapshot of process state, config keys present (booleans only), and a health probe.</p>
+        <button class="btn" onclick="runServiceInfo()">Refresh</button>
+        <div id="service-output" class="mt-4"></div>
+      </div>
+    </section>
+
+    <!-- SCHEMA -->
+    <section data-section="schema" class="tab-section hidden space-y-4">
+      <div class="card">
+        <h2>Request validation tests</h2>
+        <p class="sub">8 malformed/edge payloads (B1–B8). Each should return the expected status code.</p>
+        <button class="btn" onclick="runSchemaTests()">Run all 8</button>
+        <div id="schema-summary" class="mt-4"></div>
+        <div id="schema-output" class="mt-4"></div>
+      </div>
+    </section>
+
+    <!-- SAMPLES -->
+    <section data-section="samples" class="tab-section hidden space-y-4">
+      <div class="card">
+        <h2>Public sample runner</h2>
+        <p class="sub">Pick a case and run via the live endpoint (LLM mode) or via the math path (uses the expected directive list).</p>
+        <div class="flex flex-wrap gap-2 items-center">
+          <select id="sample-select" class="bg-slate-700 text-slate-100 px-3 py-2 rounded font-mono text-sm"></select>
+          <select id="sample-mode" class="bg-slate-700 text-slate-100 px-3 py-2 rounded font-mono text-sm">
+            <option value="llm">LLM mode (live)</option>
+            <option value="math">Math mode (expected directives)</option>
+          </select>
+          <button class="btn" onclick="runSample()">Run case</button>
+          <button class="btn btn-ghost" onclick="runSampleAndExport()">Run &amp; export</button>
+        </div>
+        <div id="sample-output" class="mt-4"></div>
+      </div>
+    </section>
+
+    <!-- DIRECTIVE DIFF -->
+    <section data-section="diff" class="tab-section hidden space-y-4">
+      <div class="card">
+        <h2>Per-note directive diff</h2>
+        <p class="sub">For each operator note, shows whether the LLM's interpretation matches the reference. Useful for spotting systematic LLM mistakes (e.g. "must not discharge" being misread as <code>no_op</code>).</p>
+        <div class="flex flex-wrap gap-2 items-center">
+          <select id="diff-select" class="bg-slate-700 text-slate-100 px-3 py-2 rounded font-mono text-sm"></select>
+          <button class="btn" onclick="runDiff()">Compare</button>
+        </div>
+        <div id="diff-summary" class="mt-4"></div>
+        <div id="diff-output" class="mt-4"></div>
+      </div>
+    </section>
+
+    <!-- EXPORT -->
+    <section data-section="export" class="tab-section hidden space-y-4">
+      <div class="card">
+        <h2>Export response JSON</h2>
+        <p class="sub">Run a single case end-to-end and download the full <code>OptimizeResponse</code> as a JSON file. Useful for sharing evidence of a run, or attaching to a bug report.</p>
+        <div class="flex flex-wrap gap-2 items-center">
+          <select id="export-select" class="bg-slate-700 text-slate-100 px-3 py-2 rounded font-mono text-sm"></select>
+          <button class="btn" onclick="runExport()">Fetch &amp; download</button>
+        </div>
+        <div id="export-output" class="mt-4"></div>
+      </div>
+    </section>
+
+    <!-- GUARDRAILS -->
+    <section data-section="guardrails" class="tab-section hidden space-y-4">
+      <div class="card">
+        <h2>Deterministic guardrails</h2>
+        <p class="sub">Hand-rolled bad input → <code class="bg-slate-800 px-1 rounded">validate_all()</code>. Confirms malformed LLM output is coerced to <code>no_op</code>.</p>
+        <button class="btn" onclick="runGuardrailTests()">Run 9 unit tests</button>
+        <div id="guardrail-summary" class="mt-4"></div>
+        <div id="guardrail-output" class="mt-4"></div>
+      </div>
+    </section>
+
+    <!-- OPTIMIZER -->
+    <section data-section="optimizer" class="tab-section hidden space-y-4">
+      <div class="card">
+        <h2>Optimizer — all 10 public cases</h2>
+        <p class="sub">Math path only. Reruns the LP solver and compares totals to the reference output.</p>
+        <div class="flex flex-wrap gap-2 items-center">
+          <select id="opt-mode" class="bg-slate-700 text-slate-100 px-3 py-2 rounded font-mono text-sm">
+            <option value="math">Math mode (recommended)</option>
+            <option value="llm">LLM mode (live)</option>
+          </select>
+          <button class="btn" onclick="runAllSamples()">Run all 10</button>
+        </div>
+        <div id="opt-summary" class="mt-4 grid grid-cols-3 gap-3"></div>
+        <div id="opt-chart-wrap" class="mt-6 hidden"><canvas id="opt-chart" height="120"></canvas></div>
+        <div id="opt-output" class="mt-4"></div>
+      </div>
+    </section>
+
+    <!-- REPLAY -->
+    <section data-section="replay" class="tab-section hidden space-y-4">
+      <div class="card">
+        <h2>End-of-day battery neutrality</h2>
+        <p class="sub">For each case, the optimizer's <code>E[23]</code> must equal the battery's <code>initial_energy_kwh</code> within 0.01 kWh.</p>
+        <button class="btn" onclick="runReplay()">Run 10 cases</button>
+        <div id="replay-summary" class="mt-4"></div>
+        <div id="replay-output" class="mt-4"></div>
+      </div>
+    </section>
+
+    <!-- LOGS -->
+    <section data-section="logs" class="tab-section hidden space-y-4">
+      <div class="card">
+        <h2>Logs &amp; secret-leakage scan</h2>
+        <p class="sub">Searches <code>/tmp/gridwise-live.log</code> for accidental API-key leakage.</p>
+        <button class="btn" onclick="runLogScan()">Scan now</button>
+        <div id="logs-output" class="mt-4"></div>
+      </div>
+    </section>
+
+    <!-- PERF -->
+    <section data-section="perf" class="tab-section hidden space-y-4">
+      <div class="card">
+        <h2>Performance &amp; reliability</h2>
+        <p class="sub">Fire N requests at <code>/optimize-energy</code> and report p50/p95/max latency, plus status counts.</p>
+        <div class="flex flex-wrap gap-2 items-center">
+          <input id="perf-count" type="number" value="20" min="1" max="200"
+                 class="bg-slate-700 text-slate-100 px-3 py-2 rounded font-mono text-sm w-24" />
+          <button class="btn" onclick="runPerfBurst()">Run burst</button>
+          <button class="btn btn-ghost" onclick="runColdStart()">Cold-start info</button>
+        </div>
+        <div id="perf-summary" class="mt-4 grid grid-cols-5 gap-3"></div>
+        <div id="perf-output" class="mt-4"></div>
+      </div>
+    </section>
+
+    <!-- DOCKER -->
+    <section data-section="docker" class="tab-section hidden space-y-4">
+      <div class="card">
+        <h2>Docker fallback image</h2>
+        <p class="sub">Read-only snapshot of <code>docker images</code> and <code>docker ps</code> for the project image.</p>
+        <button class="btn" onclick="runDockerStatus()">Refresh</button>
+        <div id="docker-output" class="mt-4"></div>
+      </div>
+    </section>
+
+  </main>
+
+<script>
+// ──────────── Utilities ────────────
+const fmt = (x) => x === null || x === undefined ? "—" :
+  (typeof x === "number" ? x.toLocaleString(undefined, {maximumFractionDigits: 4}) : x);
+
+const pill = (ok, label) => `<span class="pill ${ok ? "pill-ok" : "pill-fail"}">${label ?? (ok ? "OK" : "FAIL")}</span>`;
+
+const html = (s) => String(s).replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"})[c]);
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, { headers: {"Content-Type": "application/json"}, ...opts });
+  let body;
+  try { body = await r.json(); } catch { body = {raw: "non-JSON response"}; }
+  return { ok: r.ok, status: r.status, body };
+}
+
+function showJSON(elId, data, ok = true) {
+  document.getElementById(elId).innerHTML =
+    `<div class="flex items-center gap-2 mb-2">${pill(ok)}<span class="text-xs text-slate-400">status ${data?.status ?? "—"}</span></div>
+     <pre class="bg-slate-950 border border-slate-700 rounded p-3 text-slate-200 overflow-auto max-h-96">${html(JSON.stringify(data, null, 2))}</pre>`;
+}
+
+// ──────────── Tabs ────────────
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("tab-active"));
+    btn.classList.add("tab-active");
+    const target = btn.dataset.tab;
+    document.querySelectorAll(".tab-section").forEach(s => s.classList.toggle("hidden", s.dataset.section !== target));
+  });
+});
+document.querySelector('.tab-btn[data-tab="service"]').click();
+
+// ──────────── Periodic sidebar refresh ────────────
+async function refreshSidebar() {
+  const { body } = await api("/ui/api/service-info");
+  if (body && body.pid) {
+    document.getElementById("svc-pid").textContent = body.pid;
+    document.getElementById("svc-uptime").textContent = `${body.uptime_s}s`;
+    const hpill = document.getElementById("svc-health");
+    if (body.health?.status_code === 200) {
+      hpill.textContent = `OK ${body.health.latency_ms}ms`;
+      hpill.className = "pill pill-ok";
+    } else {
+      hpill.textContent = `${body.health?.status_code ?? "down"}`;
+      hpill.className = "pill pill-fail";
+    }
+  }
+}
+refreshSidebar();
+setInterval(refreshSidebar, 5000);
+
+// ──────────── Tab: Service ────────────
+async function runServiceInfo() {
+  const { body } = await api("/ui/api/service-info");
+  showJSON("service-output", {status: 200, data: body}, true);
+}
+
+// ──────────── Tab: Schema ────────────
+async function runSchemaTests() {
+  document.getElementById("schema-output").innerHTML = '<span class="text-slate-400 text-sm">Running 8 tests…</span>';
+  const { body } = await api("/ui/api/schema-tests");
+  if (!body.results) {
+    document.getElementById("schema-output").innerHTML = `<pre>${html(JSON.stringify(body, null, 2))}</pre>`;
+    return;
+  }
+  const passed = body.results.filter(r => r.passed).length;
+  document.getElementById("schema-summary").innerHTML =
+    `<div class="grid grid-cols-3 gap-3">
+       <div class="card"><div class="stat-num text-emerald-400">${passed}</div><div class="stat-label">passed</div></div>
+       <div class="card"><div class="stat-num text-red-400">${body.results.length - passed}</div><div class="stat-label">failed</div></div>
+       <div class="card"><div class="stat-num text-blue-400">${body.results.length}</div><div class="stat-label">total</div></div>
+     </div>`;
+  let html = `<table class="w-full mt-4"><thead><tr><th>Test</th><th>Status</th><th>Expected</th><th>Latency</th><th>Result</th></tr></thead><tbody>`;
+  for (const r of body.results) {
+    html += `<tr>
+      <td class="font-mono">${r.test}</td>
+      <td>${r.status}</td>
+      <td>${r.expected}</td>
+      <td>${r.elapsed_ms} ms</td>
+      <td>${pill(r.passed)}</td>
+    </tr>`;
+  }
+  html += "</tbody></table>";
+  html += `<details class="mt-4"><summary class="cursor-pointer text-slate-400 text-sm">Show raw responses</summary>
+            <pre class="bg-slate-950 border border-slate-700 rounded p-3 mt-2 overflow-auto max-h-96">${htmlEscape(JSON.stringify(body.results, null, 2))}</pre></details>`;
+  document.getElementById("schema-output").innerHTML = html;
+}
+function htmlEscape(s){ return String(s).replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"})[c]); }
+
+// ──────────── Tab: Samples ────────────
+const SAMPLE_IDS = ["SAMPLE-01","SAMPLE-02","SAMPLE-03","SAMPLE-04","SAMPLE-05","SAMPLE-06","SAMPLE-07","SAMPLE-08","SAMPLE-09","SAMPLE-10"];
+{
+  const sel = document.getElementById("sample-select");
+  SAMPLE_IDS.forEach(id => {
+    const opt = document.createElement("option");
+    opt.value = id; opt.textContent = id;
+    sel.appendChild(opt);
+  });
+}
+async function runSample() {
+  const id = document.getElementById("sample-select").value;
+  const mode = document.getElementById("sample-mode").value;
+  document.getElementById("sample-output").innerHTML = `<span class="text-slate-400 text-sm">Running ${id} (${mode})…</span>`;
+  const { body } = await api(`/ui/api/sample/${id}?mode=${mode}`, {method: "POST"});
+  const ok = body.status === 200 || body.valid === true;
+  let summary = "";
+  if (body.diff) {
+    summary = `<div class="grid grid-cols-3 gap-3 mt-3">
+      <div class="card"><div class="stat-num">${fmt(body.diff.cost_diff)}</div><div class="stat-label">cost diff (BDT)</div></div>
+      <div class="card"><div class="stat-num">${fmt(body.diff.grid_diff)}</div><div class="stat-label">grid diff (kWh)</div></div>
+      <div class="card"><div class="stat-num">${fmt(body.diff.peak_diff)}</div><div class="stat-label">peak diff (kWh)</div></div>
+    </div>`;
+  }
+  document.getElementById("sample-output").innerHTML =
+    `${pill(ok)} <span class="text-sm text-slate-400 ml-2">${body.elapsed_ms ?? 0} ms</span>${summary}
+     <pre class="bg-slate-950 border border-slate-700 rounded p-3 mt-3 text-slate-200 overflow-auto max-h-[28rem]">${htmlEscape(JSON.stringify(body, null, 2))}</pre>`;
+}
+
+// ──────────── Tab: Directive Diff ────────────
+{
+  // Populate the diff selector from the same list as the samples tab.
+  const diffSel = document.getElementById("diff-select");
+  const expSel = document.getElementById("export-select");
+  const srcSel = document.getElementById("sample-select");
+  function mirror(src, dst) {
+    [...src.options].forEach(o => {
+      const c = document.createElement("option");
+      c.value = o.value; c.textContent = o.textContent;
+      dst.appendChild(c);
+    });
+  }
+  mirror(srcSel, diffSel);
+  mirror(srcSel, expSel);
+}
+
+async function runDiff() {
+  const id = document.getElementById("diff-select").value;
+  document.getElementById("diff-output").innerHTML = `<span class="text-slate-400 text-sm">Comparing ${id}…</span>`;
+  const { body } = await api(`/ui/api/directive-diff/${id}?mode=llm`, {method: "POST"});
+  if (body.error) {
+    document.getElementById("diff-output").innerHTML = `<div class="p-4 rounded bg-red-900/40">${body.error}</div>`;
+    return;
+  }
+  document.getElementById("diff-summary").innerHTML =
+    `<div class="grid grid-cols-3 gap-3">
+       <div class="card"><div class="stat-num text-emerald-400">${body.matched}/${body.total}</div><div class="stat-label">exact match</div></div>
+       <div class="card"><div class="stat-num text-blue-400">${body.total - body.matched}</div><div class="stat-label">partial / mismatch</div></div>
+       <div class="card"><div class="stat-num">${body.case_id}</div><div class="stat-label">case</div></div>
+     </div>`;
+  const sevPill = (s) => {
+    if (s === "exact") return `<span class="pill pill-ok">exact</span>`;
+    if (s === "partial") return `<span class="pill pill-warn">partial</span>`;
+    if (s === "missing") return `<span class="pill pill-fail">missing</span>`;
+    return `<span class="pill pill-fail">mismatch</span>`;
+  };
+  let table = `<table class="w-full mt-4"><thead><tr>
+    <th>#</th><th>Note</th><th>Expected type</th><th>Actual type</th><th>Severity</th>
+  </tr></thead><tbody>`;
+  for (const r of body.rows) {
+    table += `<tr>
+      <td class="font-mono">${r.note_index}</td>
+      <td class="text-xs">${htmlEscape(r.note)}</td>
+      <td class="font-mono text-xs">${htmlEscape(r.expected?.directive_type ?? "—")}</td>
+      <td class="font-mono text-xs">${htmlEscape(r.actual?.directive_type ?? "—")}</td>
+      <td>${sevPill(r.severity)}</td>
+    </tr>`;
+  }
+  table += "</tbody></table>";
+  table += `<details class="mt-4"><summary class="cursor-pointer text-slate-400 text-sm">Show full expected vs actual JSON</summary>
+            <pre class="bg-slate-950 border border-slate-700 rounded p-3 mt-2 overflow-auto max-h-[40rem]">${htmlEscape(JSON.stringify(body.rows, null, 2))}</pre></details>`;
+  document.getElementById("diff-output").innerHTML = table;
+}
+
+// ──────────── Tab: Export ────────────
+async function runExport() {
+  const id = document.getElementById("export-select").value;
+  document.getElementById("export-output").innerHTML = `<span class="text-slate-400 text-sm">Fetching ${id}…</span>`;
+  const { body } = await api(`/ui/api/export-response/${id}?mode=llm`, {method: "POST"});
+  if (body.error) {
+    document.getElementById("export-output").innerHTML = `<div class="p-4 rounded bg-red-900/40">${body.error}</div>`;
+    return;
+  }
+  // Trigger download in the browser
+  const blob = new Blob([JSON.stringify(body.response, null, 2)], {type: "application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = body.filename_suggestion;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  document.getElementById("export-output").innerHTML =
+    `<div class="p-4 rounded bg-emerald-900/40 border border-emerald-700">
+       ✓ Downloaded <code>${body.filename_suggestion}</code> (status ${body.status}, fetched ${body.fetched_at})
+     </div>`;
+}
+
+// "Run & export" shortcut on the Samples tab: run the case AND auto-download.
+async function runSampleAndExport() {
+  await runSample();
+  await runExport();
+}
+
+// ──────────── Tab: Guardrails ────────────
+async function runGuardrailTests() {
+  document.getElementById("guardrail-output").innerHTML = '<span class="text-slate-400 text-sm">Running 9 tests…</span>';
+  const { body } = await api("/ui/api/guardrail-tests");
+  document.getElementById("guardrail-summary").innerHTML =
+    `<div class="grid grid-cols-3 gap-3">
+       <div class="card"><div class="stat-num text-emerald-400">${body.passed}</div><div class="stat-label">passed</div></div>
+       <div class="card"><div class="stat-num text-red-400">${body.total - body.passed}</div><div class="stat-label">failed</div></div>
+       <div class="card"><div class="stat-num text-blue-400">${body.total}</div><div class="stat-label">total</div></div>
+     </div>`;
+  let html = `<table class="w-full mt-4"><thead><tr><th>Test</th><th>Result</th></tr></thead><tbody>`;
+  for (const r of body.results) {
+    html += `<tr><td class="font-mono">${r.test}</td><td>${pill(r.passed)}</td></tr>`;
+  }
+  html += "</tbody></table>";
+  html += `<details class="mt-4"><summary class="cursor-pointer text-slate-400 text-sm">Show details</summary>
+            <pre class="bg-slate-950 border border-slate-700 rounded p-3 mt-2 overflow-auto max-h-96">${htmlEscape(JSON.stringify(body.results, null, 2))}</pre></details>`;
+  document.getElementById("guardrail-output").innerHTML = html;
+}
+
+// ──────────── Tab: Optimizer ────────────
+let _chart = null;
+async function runAllSamples() {
+  const mode = document.getElementById("opt-mode").value;
+  document.getElementById("opt-output").innerHTML = '<span class="text-slate-400 text-sm">Running 10 cases…</span>';
+  const { body } = await api(`/ui/api/run-all-samples?mode=${mode}`, {method: "POST"});
+  if (!body.rows) {
+    document.getElementById("opt-output").innerHTML = `<pre>${htmlEscape(JSON.stringify(body, null, 2))}</pre>`;
+    return;
+  }
+  const s = body.summary;
+  document.getElementById("opt-summary").innerHTML =
+    `<div class="card"><div class="stat-num text-emerald-400">${s.valid_or_200}/${s.total}</div><div class="stat-label">valid / 200</div></div>
+     <div class="card"><div class="stat-num text-blue-400">${s.avg_quality_ratio}</div><div class="stat-label">avg quality ratio</div></div>
+     <div class="card"><div class="stat-num">${mode}</div><div class="stat-label">mode</div></div>`;
+
+  // Render chart
+  const labels = body.rows.map(r => r.case_id);
+  const teamCost = body.rows.map(r => r.team_cost ?? 0);
+  const expCost = body.rows.map(r => r.expected_cost ?? 0);
+  document.getElementById("opt-chart-wrap").classList.remove("hidden");
+  const ctx = document.getElementById("opt-chart");
+  if (_chart) _chart.destroy();
+  _chart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        { label: "Team cost (BDT)", data: teamCost, backgroundColor: "#3b82f6" },
+        { label: "Reference cost (BDT)", data: expCost, backgroundColor: "#10b981" },
+      ],
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: "#e2e8f0" } } },
+      scales: {
+        x: { ticks: { color: "#cbd5e1" }, grid: { color: "#334155" } },
+        y: { ticks: { color: "#cbd5e1" }, grid: { color: "#334155" } },
+      },
+    },
+  });
+
+  let table = `<table class="w-full mt-4"><thead><tr>
+    <th>Case</th><th>Label</th><th>Status</th><th>Latency</th><th>Team cost</th><th>Expected</th><th>Δ cost</th><th>Quality</th>
+  </tr></thead><tbody>`;
+  for (const r of body.rows) {
+    table += `<tr>
+      <td class="font-mono">${r.case_id}</td>
+      <td class="text-xs">${r.label ?? ""}</td>
+      <td>${r.status ?? (r.valid ? "OK" : "FAIL")}</td>
+      <td>${r.elapsed_ms ?? "—"} ms</td>
+      <td>${fmt(r.team_cost)}</td>
+      <td>${fmt(r.expected_cost)}</td>
+      <td>${fmt(r.cost_diff)}</td>
+      <td>${fmt(r.quality_ratio)}</td>
+    </tr>`;
+  }
+  table += "</tbody></table>";
+  document.getElementById("opt-output").innerHTML = table;
+}
+
+// ──────────── Tab: Replay ────────────
+async function runReplay() {
+  document.getElementById("replay-output").innerHTML = '<span class="text-slate-400 text-sm">Running 10 cases…</span>';
+  const { body } = await api("/ui/api/replay-checks");
+  if (!body.rows) {
+    document.getElementById("replay-output").innerHTML = `<pre>${htmlEscape(JSON.stringify(body, null, 2))}</pre>`;
+    return;
+  }
+  document.getElementById("replay-summary").innerHTML =
+    `<div class="grid grid-cols-3 gap-3">
+       <div class="card"><div class="stat-num text-emerald-400">${body.passed}/${body.total}</div><div class="stat-label">EOD-neutral</div></div>
+     </div>`;
+  let table = `<table class="w-full mt-4"><thead><tr>
+    <th>Case</th><th>Label</th><th>E_initial</th><th>E_final</th><th>Δ</th><th>Solver</th><th>Result</th>
+  </tr></thead><tbody>`;
+  for (const r of body.rows) {
+    table += `<tr>
+      <td class="font-mono">${r.case_id}</td>
+      <td class="text-xs">${r.label ?? ""}</td>
+      <td>${fmt(r.e_initial)}</td>
+      <td>${fmt(r.e_final)}</td>
+      <td>${fmt(r.delta)}</td>
+      <td class="text-xs">${r.solver ?? "—"}</td>
+      <td>${pill(r.passed)}</td>
+    </tr>`;
+  }
+  table += "</tbody></table>";
+  document.getElementById("replay-output").innerHTML = table;
+}
+
+// ──────────── Tab: Logs ────────────
+async function runLogScan() {
+  const { body } = await api("/ui/api/log-scan");
+  const summary = body.passed
+    ? `<div class="p-4 rounded bg-emerald-900/40 border border-emerald-700 text-emerald-200">✓ No secrets leaked in ${body.path} (${body.size_bytes} bytes scanned)</div>`
+    : `<div class="p-4 rounded bg-red-900/40 border border-red-700 text-red-200">✗ Found ${body.matches.length} potential leak(s) in ${body.path}</div>`;
+  let details = "";
+  if (body.matches?.length) {
+    details = `<table class="w-full mt-4"><thead><tr><th>Needle</th><th>Line</th></tr></thead><tbody>`;
+    for (const m of body.matches) {
+      details += `<tr><td class="font-mono text-xs">${m.needle}</td><td class="font-mono text-xs break-all">${htmlEscape(m.line)}</td></tr>`;
+    }
+    details += "</tbody></table>";
+  }
+  if (!body.exists) {
+    document.getElementById("logs-output").innerHTML =
+      `<div class="p-4 rounded bg-yellow-900/40 border border-yellow-700 text-yellow-200">⚠ No log file at ${body.path}. Run the service and use it once first.</div>`;
+    return;
+  }
+  document.getElementById("logs-output").innerHTML = summary + details;
+}
+
+// ──────────── Tab: Performance ────────────
+async function runPerfBurst() {
+  const n = parseInt(document.getElementById("perf-count").value || "20");
+  document.getElementById("perf-output").innerHTML = `<span class="text-slate-400 text-sm">Firing ${n} requests…</span>`;
+  const t0 = performance.now();
+  const { body } = await api(`/ui/api/perf-burst?count=${n}`, {method: "POST"});
+  const elapsed = ((performance.now() - t0) / 1000).toFixed(2);
+  if (body.error) {
+    document.getElementById("perf-output").innerHTML = `<div class="p-4 rounded bg-red-900/40 border border-red-700">${body.error}</div>`;
+    return;
+  }
+  document.getElementById("perf-summary").innerHTML =
+    `<div class="card"><div class="stat-num">${fmt(body.min_ms)}</div><div class="stat-label">min ms</div></div>
+     <div class="card"><div class="stat-num">${fmt(body.p50_ms)}</div><div class="stat-label">p50 ms</div></div>
+     <div class="card"><div class="stat-num">${fmt(body.p95_ms)}</div><div class="stat-label">p95 ms</div></div>
+     <div class="card"><div class="stat-num">${fmt(body.max_ms)}</div><div class="stat-label">max ms</div></div>
+     <div class="card"><div class="stat-num">${body.statuses_count["200"] ?? 0}/${body.count}</div><div class="stat-label">200s</div></div>`;
+  document.getElementById("perf-output").innerHTML =
+    `${pill(body.passed)} <span class="text-sm text-slate-400 ml-2">total wall: ${elapsed}s</span>
+     <pre class="bg-slate-950 border border-slate-700 rounded p-3 mt-3 overflow-auto max-h-72">${htmlEscape(JSON.stringify(body, null, 2))}</pre>`;
+}
+async function runColdStart() {
+  const { body } = await api("/ui/api/cold-start", {method: "POST"});
+  document.getElementById("perf-output").innerHTML =
+    `<div class="p-4 rounded bg-slate-800 border border-slate-700">${htmlEscape(JSON.stringify(body, null, 2))}</div>`;
+}
+
+// ──────────── Tab: Docker ────────────
+async function runDockerStatus() {
+  document.getElementById("docker-output").innerHTML = '<span class="text-slate-400 text-sm">Querying docker…</span>';
+  const { body } = await api("/ui/api/docker-status");
+  let html = "<div class='space-y-4'>";
+  html += "<div><h3 class='text-sm font-bold text-slate-300 mb-2'>Images</h3>";
+  if (body.images?.length) {
+    html += "<pre class='bg-slate-950 border border-slate-700 rounded p-3 overflow-auto'>" + htmlEscape(body.images.join("\n")) + "</pre>";
+  } else {
+    html += `<div class='text-slate-400 text-sm'>No images match <code>ai-will-fix-it/gridwise</code>. Build first with <code>docker build -t ai-will-fix-it/gridwise:dev .</code></div>`;
+  }
+  html += `</div><div><h3 class='text-sm font-bold text-slate-300 mb-2'>Containers</h3>`;
+  if (body.containers?.length) {
+    html += "<pre class='bg-slate-950 border border-slate-700 rounded p-3 overflow-auto'>" + htmlEscape(body.containers.join("\n")) + "</pre>";
+  } else {
+    html += "<div class='text-slate-400 text-sm'>No running container from this image.</div>";
+  }
+  html += "</div>";
+  if (body.images_error) html += `<div class='text-red-300 text-xs'>${htmlEscape(body.images_error)}</div>`;
+  if (body.containers_error) html += `<div class='text-red-300 text-xs'>${htmlEscape(body.containers_error)}</div>`;
+  html += "</div>";
+  document.getElementById("docker-output").innerHTML = html;
+}
+
+// Initial paint
+runServiceInfo();
+</script>
+</body>
+</html>
