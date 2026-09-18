@@ -341,7 +341,22 @@ curl -s http://127.0.0.1:8000/health
 # -> {"status":"ok"}
 ```
 
-### 10.2 Publish a new image (one-shot)
+### 10.2 Public host (Railway — recommended for judges)
+
+```bash
+# One-time: sign in at https://railway.app with GitHub, then:
+# 1. New Project → Deploy from GitHub repo → pick this repo
+# 2. Service → Variables, paste: GROQ_API_KEY, GEMINI_API_KEY, OPENROUTER_API_KEY
+# 3. Settings → Networking → Generate Domain
+# Full guide: docs/RAILWAY_DEPLOY.md
+```
+
+The Dockerfile and `railway.toml` are already configured for Railway:
+- `CMD` reads `$PORT` so Railway's auto-injected port works.
+- `railway.toml` declares `/health` as the healthcheck with a 30 s timeout
+  (covers PuLP + scipy cold-start).
+
+### 10.3 Publish a new image (one-shot)
 
 Use `publish.sh`:
 
