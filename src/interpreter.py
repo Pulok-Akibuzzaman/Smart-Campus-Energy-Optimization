@@ -8,7 +8,10 @@ import json
 import re
 import requests
 from typing import List, Dict, Any, Optional
-from guardrails import validate_and_sanitize_interpretation
+try:
+    from src.guardrails import validate_and_sanitize_interpretation
+except ImportError:
+    from guardrails import validate_and_sanitize_interpretation
 
 SYSTEM_PROMPT = """You are an expert energy operations assistant for a smart university campus microgrid.
 Your task is to analyze 1 to 3 natural-language operator notes and extract machine-checkable directives for a 24-hour energy optimization schedule (hours 0 through 23).

@@ -1,8 +1,21 @@
+"""
+tests/test_server.py - Integration Tests for the FastAPI Service
+"""
+
+import os
+import sys
 import json
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from fastapi.testclient import TestClient
-from main import app
-from models import OptimizeEnergyResponse
-from test_optimizer import validate_plan
+from src.main import app
+from src.models import OptimizeEnergyResponse
+from tests.test_optimizer import validate_plan
+
+DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "BUP_CSE_FEST_2026_Preli_Public_Sample_Cases.json")
+if not os.path.exists(DATA_PATH):
+    DATA_PATH = "data/BUP_CSE_FEST_2026_Preli_Public_Sample_Cases.json"
 
 client = TestClient(app)
 
@@ -13,7 +26,7 @@ def test_health():
     print("[PASSED] GET /health check")
 
 def test_all_sample_cases():
-    with open("BUP_CSE_FEST_2026_Preli_Public_Sample_Cases.json") as f:
+    with open(DATA_PATH) as f:
         data = json.load(f)
         
     for case in data["cases"]:

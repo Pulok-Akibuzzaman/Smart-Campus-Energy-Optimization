@@ -1,16 +1,26 @@
 """
-run_samples.py - Benchmark and Verification Script
-Runs all 10 public sample cases against the GridWise pipeline and validates all metrics.
+run_samples.py - Top-Level Benchmark and Verification Runner
+Executes all 10 canonical public sample cases and prints a clean performance summary table.
 """
 
+import os
+import sys
 import time
 import json
-from optimizer import solve_energy_schedule
-from interpreter import interpret_operator_notes
-from test_optimizer import validate_plan
+
+# Ensure project root is in sys.path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from src.optimizer import solve_energy_schedule
+from src.interpreter import interpret_operator_notes
+from tests.test_optimizer import validate_plan
+
+DATA_PATH = os.path.join(os.path.dirname(__file__), "data", "BUP_CSE_FEST_2026_Preli_Public_Sample_Cases.json")
+if not os.path.exists(DATA_PATH):
+    DATA_PATH = "data/BUP_CSE_FEST_2026_Preli_Public_Sample_Cases.json"
 
 def run_benchmark():
-    with open("BUP_CSE_FEST_2026_Preli_Public_Sample_Cases.json") as f:
+    with open(DATA_PATH) as f:
         data = json.load(f)
         
     cases = data["cases"]

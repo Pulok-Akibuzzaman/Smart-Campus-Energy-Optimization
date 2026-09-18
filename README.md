@@ -45,7 +45,42 @@ The GridWise solution is engineered as an end-to-end decoupled pipeline where hu
 
 ---
 
-## 2. Quickstart (Local Environment)
+## 2. Project Directory Structure
+
+```text
+Hackathon/
+├── docs/                                  # Official competition rules & guides
+│   ├── BUP_CSE_FEST_2026_Participant_Guide_&_Evaluation_Rubric_GridWise_LLM.pdf
+│   ├── BUP_CSE_FEST_2026_Preliminary_Problem_Statement_GridWise_LLM.pdf
+│   └── VIDEO_WALKTHROUGH_SCRIPT.md        # Script for the 3-minute tie-breaker video
+├── data/                                  # Benchmark and sample datasets
+│   ├── BUP_CSE_FEST_2026_Preli_Public_Sample_Cases.json
+│   └── sample_request.json                # Sample curl payload
+├── src/                                   # Application source code
+│   ├── __init__.py
+│   ├── models.py                          # Pydantic schemas (Section 07 & 10)
+│   ├── guardrails.py                      # Deterministic validation & sanitization
+│   ├── interpreter.py                     # LLM & fallback directive interpreter
+│   ├── optimizer.py                       # PuLP / HiGHS 24h MILP energy solver
+│   └── main.py                            # FastAPI application definition
+├── tests/                                 # Test and benchmark suites
+│   ├── __init__.py
+│   ├── test_optimizer.py                  # Physical constraint validation & LP tests
+│   ├── test_interpreter.py                # LLM & heuristic extraction tests
+│   └── test_server.py                     # API endpoint integration tests
+├── run_samples.py                         # Top-level benchmark runner script
+├── main.py                                # Root entrypoint proxy (uvicorn main:app)
+├── Dockerfile                             # Multi-platform container definition
+├── requirements.txt                       # Project dependencies
+├── .dockerignore                          # Docker ignore rules
+├── .gitignore                             # Git ignore rules
+├── .env.example                           # Environment configuration template
+└── README.md                              # Reproducibility & architecture guide
+```
+
+---
+
+## 3. Quickstart (Local Environment)
 
 ### Prerequisites
 - Python 3.10+
@@ -77,7 +112,7 @@ The service will be listening at `http://localhost:8000`.
 
 ---
 
-## 3. Environment Variables & Model Provider Configuration
+## 4. Environment Variables & Model Provider Configuration
 
 Create a `.env` file in the root directory (or pass via environment variables):
 
@@ -98,9 +133,9 @@ GEMINI_API_KEY=your_google_gemini_api_key
 
 ---
 
-## 4. API Endpoints & Usage
+## 5. API Endpoints & Usage
 
-### 4.1 Health Check
+### 5.1 Health Check
 ```bash
 curl -X GET http://localhost:8000/health
 ```
@@ -111,16 +146,16 @@ curl -X GET http://localhost:8000/health
 }
 ```
 
-### 4.2 Energy Optimization
+### 5.2 Energy Optimization
 ```bash
 curl -X POST http://localhost:8000/optimize-energy \
   -H "Content-Type: application/json" \
-  -d @sample_request.json
+  -d @data/sample_request.json
 ```
 
 ---
 
-## 5. Automated Verification & Public Benchmarks
+## 6. Automated Verification & Public Benchmarks
 
 Run the built-in benchmark script to test all 10 canonical public sample cases:
 
@@ -128,8 +163,10 @@ Run the built-in benchmark script to test all 10 canonical public sample cases:
 # Run local benchmark across all 10 sample cases
 python run_samples.py
 
-# Run full HTTP integration test suite
-python test_server.py
+# Run full integration test suites
+python tests/test_optimizer.py
+python tests/test_interpreter.py
+python tests/test_server.py
 ```
 
 ### Expected Output
@@ -154,11 +191,11 @@ Summary: 10/10 passed | Total Time: 171.7 ms | Avg: 17.2 ms/case
 
 ---
 
-## 6. Docker Fallback Execution
+## 7. Docker Fallback Execution
 
 The project includes a multi-platform, lightweight container image.
 
-### 6.1 Pull and Run Pre-built Image
+### 7.1 Pull and Run Pre-built Image
 ```bash
 # Pull from registry
 docker pull pulokakib/gridwise-solver:v1.0
@@ -170,7 +207,7 @@ docker run -d --name gridwise -p 8000:8000 pulokakib/gridwise-solver:v1.0
 curl http://localhost:8000/health
 ```
 
-### 6.2 Build Locally from Source
+### 7.2 Build Locally from Source
 ```bash
 docker build -t gridwise-solver:latest .
 docker run -p 8000:8000 gridwise-solver:latest
@@ -178,7 +215,7 @@ docker run -p 8000:8000 gridwise-solver:latest
 
 ---
 
-## 7. Solvers, Libraries & Credits
+## 8. Solvers, Libraries & Credits
 - **Web Framework**: [FastAPI](https://fastapi.tiangolo.com/) & [Uvicorn](https://www.uvicorn.org/) for async high-performance HTTP service.
 - **Data Validation**: [Pydantic v2](https://docs.pydantic.dev/) for strict schema contract enforcement.
 - **Optimization Solver**: [PuLP](https://coin-or.github.io/pulp/) with [HiGHS](https://highs.dev/) / COIN-OR CBC for global-optimal MILP solving.
@@ -186,6 +223,6 @@ docker run -p 8000:8000 gridwise-solver:latest
 
 ---
 
-## 8. Known Limitations
+## 9. Known Limitations
 - The optimizer operates on a fixed 24-hour discrete horizon ($h \in [0, 23]$).
 - Floating-point calculations adhere to standard IEEE-754 precision, verified well within the competition tolerance of 0.01 kWh and 0.01 BDT.
