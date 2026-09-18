@@ -47,36 +47,22 @@ The GridWise solution is engineered as an end-to-end decoupled pipeline where hu
 
 ## 2. Project Directory Structure
 
-```text
-Hackathon/
-├── docs/                                  # Official competition rules & guides
-│   ├── BUP_CSE_FEST_2026_Participant_Guide_&_Evaluation_Rubric_GridWise_LLM.pdf
-│   ├── BUP_CSE_FEST_2026_Preliminary_Problem_Statement_GridWise_LLM.pdf
-│   └── VIDEO_WALKTHROUGH_SCRIPT.md        # Script for the 3-minute tie-breaker video
-├── data/                                  # Benchmark and sample datasets
-│   ├── BUP_CSE_FEST_2026_Preli_Public_Sample_Cases.json
-│   └── sample_request.json                # Sample curl payload
-├── src/                                   # Application source code
-│   ├── __init__.py
-│   ├── models.py                          # Pydantic schemas (Section 07 & 10)
-│   ├── guardrails.py                      # Deterministic validation & sanitization
-│   ├── interpreter.py                     # LLM & fallback directive interpreter
-│   ├── optimizer.py                       # PuLP / HiGHS 24h MILP energy solver
-│   └── main.py                            # FastAPI application definition
-├── tests/                                 # Test and benchmark suites
-│   ├── __init__.py
-│   ├── test_optimizer.py                  # Physical constraint validation & LP tests
-│   ├── test_interpreter.py                # LLM & heuristic extraction tests
-│   └── test_server.py                     # API endpoint integration tests
-├── run_samples.py                         # Top-level benchmark runner script
-├── main.py                                # Root entrypoint proxy (uvicorn main:app)
-├── Dockerfile                             # Multi-platform container definition
-├── requirements.txt                       # Project dependencies
-├── .dockerignore                          # Docker ignore rules
-├── .gitignore                             # Git ignore rules
-├── .env.example                           # Environment configuration template
-└── README.md                              # Reproducibility & architecture guide
-```
+- [**docs/**](./docs/) - Official competition rules & guides
+  - [`VIDEO_WALKTHROUGH_SCRIPT.md`](./docs/VIDEO_WALKTHROUGH_SCRIPT.md) - Script for the 3-minute tie-breaker video
+- [**data/**](./data/) - Benchmark and sample datasets
+  - [`sample_request.json`](./data/sample_request.json) - Sample curl payload
+- [**src/**](./src/) - Application source code
+  - [`models.py`](./src/models.py) - Pydantic schemas (Section 07 & 10)
+  - [`guardrails.py`](./src/guardrails.py) - Deterministic validation & sanitization
+  - [`interpreter.py`](./src/interpreter.py) - LLM & fallback directive interpreter
+  - [`optimizer.py`](./src/optimizer.py) - PuLP / HiGHS 24h MILP energy solver
+  - [`main.py`](./src/main.py) - FastAPI application definition
+  - [`static/index.html`](./src/static/index.html) - Interactive Dashboard UI
+- [**tests/**](./tests/) - Test and benchmark suites
+- [`run_samples.py`](./run_samples.py) - Top-level benchmark runner script
+- [`Dockerfile`](./Dockerfile) - Multi-platform container definition
+- [`requirements.txt`](./requirements.txt) - Project dependencies
+- [`.env.example`](./.env.example) - Environment configuration template
 
 ---
 
@@ -135,7 +121,13 @@ GEMINI_API_KEY=your_google_gemini_api_key
 
 ## 5. API Endpoints & Usage
 
-### 5.1 Health Check
+### 5.1 Interactive Dashboard UI
+If you prefer a visual interface to test scenarios instead of curl:
+- **[View Dashboard (http://localhost:8000/)](http://localhost:8000/)**
+
+### 5.2 Health Check (Readiness Probe)
+- **[Check Status (http://localhost:8000/health)](http://localhost:8000/health)**
+
 ```bash
 curl -X GET http://localhost:8000/health
 ```
