@@ -316,6 +316,7 @@
         <a class="nav-item" onclick="switchView('view-logs', this)">Operator Logs</a>
         <a class="nav-item" onclick="switchView('view-charts', this)">Analytics Charts</a>
         <a class="nav-item" onclick="switchView('view-table', this)">Schedule Table</a>
+        <a class="nav-item" onclick="switchView('view-json', this)">Raw JSON Editor</a>
         <a class="nav-item" onclick="switchView('view-api', this)">API Reference</a>
       </nav>
       <div class="sidebar-footer">
@@ -456,7 +457,20 @@
           </div>
         </div>
 
-        <!-- View 5: API Documentation -->
+        <!-- View 5: JSON Editor -->
+        <div id="view-json" class="view-container" style="height: calc(100vh - 120px);">
+          <h2 class="view-title">Raw JSON Scenario Editor</h2>
+          <p style="color: var(--text-muted); font-size: 0.85rem;">Modify any parameter manually (demand, solar, battery limits, or notes) before running the solver.</p>
+          <div class="panel" style="flex: 1; display: flex; flex-direction: column;">
+            <div class="panel-title"><span>Request Payload (Editable)</span></div>
+            <textarea id="jsonEditor" style="flex: 1; min-height: 300px; font-family: var(--font-mono); font-size: 0.85rem; padding: 1rem; border: 1px solid var(--border); border-radius: 6px; outline: none; resize: none; background: #f8fafc; color: var(--text-main);"></textarea>
+            <button class="btn btn-primary" style="margin-top: 1rem; align-self: flex-start;" onclick="applyJsonAndRun()">
+              Apply Custom JSON & Solve
+            </button>
+          </div>
+        </div>
+
+        <!-- View 6: API Documentation -->
         <div id="view-api" class="view-container" style="height: calc(100vh - 120px);">
           <h2 class="view-title">Interactive API Documentation</h2>
           <div class="panel" style="flex: 1; padding: 0; overflow: hidden; border-radius: 8px;">
@@ -504,34 +518,56 @@
       const selIdx = parseInt(document.getElementById('caseSelector').value);
       if (!sampleCases || !sampleCases[selIdx]) return;
       currentCaseData = JSON.parse(JSON.stringify(sampleCases[selIdx].input));
+      populateUIFromData();
+      runOptimization();
+    }
+
+    function populateUIFromData() {
+      // Sync JSON Editor
+      document.getElementById('jsonEditor').value = JSON.stringify(currentCaseData, null, 2);
 
       // Populate notes
       const notesContainer = document.getElementById('notesContainer');
       notesContainer.innerHTML = '';
-      currentCaseData.operator_notes.forEach((note, i) => {
-        const div = document.createElement('div');
-        div.className = 'note-box';
-        div.innerHTML = `
-          <div class="note-header">Note #${i}</div>
-          <textarea class="note-textarea" rows="2" onchange="updateNoteText(${i}, this.value)">${note}</textarea>
-        `;
-        notesContainer.appendChild(div);
-      });
-      document.getElementById('notesBadge').innerText = `${currentCaseData.operator_notes.length} Notes`;
+      if(currentCaseData.operator_notes) {
+        currentCaseData.operator_notes.forEach((note, i) => {
+          const div = document.createElement('div');
+          div.className = 'note-box';
+          div.innerHTML = `
+            <div class="note-header">Note #${i}</div>
+            <textarea class="note-textarea" rows="2" onchange="updateNoteText(${i}, this.value)">${note}</textarea>
+          `;
+          notesContainer.appendChild(div);
+        });
+        document.getElementById('notesBadge').innerText = `${currentCaseData.operator_notes.length} Notes`;
+      }
 
       // Battery specs
-      document.getElementById('specCap').innerText = `${currentCaseData.battery.capacity_kwh} kWh`;
-      document.getElementById('specInit').innerText = `${currentCaseData.battery.initial_energy_kwh} kWh`;
-      document.getElementById('specMin').innerText = `${currentCaseData.battery.minimum_energy_kwh} kWh`;
-      document.getElementById('specRate').innerText = `${currentCaseData.battery.max_charge_kwh_per_hour} kW`;
-
-      // Run optimization
-      runOptimization();
+      if(currentCaseData.battery) {
+        document.getElementById('specCap').innerText = `${currentCaseData.battery.capacity_kwh} kWh`;
+        document.getElementById('specInit').innerText = `${currentCaseData.battery.initial_energy_kwh} kWh`;
+        document.getElementById('specMin').innerText = `${currentCaseData.battery.minimum_energy_kwh} kWh`;
+        document.getElementById('specRate').innerText = `${currentCaseData.battery.max_charge_kwh_per_hour} kW`;
+      }
     }
 
     function updateNoteText(idx, val) {
       if (currentCaseData && currentCaseData.operator_notes[idx] !== undefined) {
         currentCaseData.operator_notes[idx] = val;
+        document.getElementById('jsonEditor').value = JSON.stringify(currentCaseData, null, 2);
+      }
+    }
+
+    function applyJsonAndRun() {
+      try {
+        const rawJson = document.getElementById('jsonEditor').value;
+        const parsed = JSON.parse(rawJson);
+        currentCaseData = parsed;
+        populateUIFromData(); // Sync the rest of the UI
+        runOptimization();
+        alert("Custom JSON applied successfully! Solving optimal plan...");
+      } catch (e) {
+        alert("Invalid JSON Syntax: " + e.message);
       }
     }
 
