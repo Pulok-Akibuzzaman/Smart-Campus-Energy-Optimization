@@ -246,6 +246,8 @@ uvicorn gridwise.app:app --host 0.0.0.0 --port 8000
 
 ```powershell
 # Requires Python 3.11+ from python.org OR `winget install Python.Python.3.12`
+# IMPORTANT: run this ENTIRE block from PowerShell (not CMD, not Git Bash).
+# The `$env:NAME = "value"` syntax is PowerShell-only.
 git clone https://github.com/Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It.git
 cd Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It
 python -m venv venv
@@ -254,6 +256,8 @@ pip install --upgrade pip
 pip install -r requirements.txt
 copy .env.example .env              # then edit with Notepad / VS Code
 $env:PYTHONPATH = "src"
+# If you accidentally see "The term 'uvicorn' is not recognized":
+# the venv isn't active. Re-run the `venv\Scripts\Activate.ps1` line above.
 uvicorn gridwise.app:app --host 0.0.0.0 --port 8000
 ```
 
@@ -311,7 +315,7 @@ curl -s http://127.0.0.1:8000/health
 | `ERROR: No matching distribution found for fastapi` | pip linked to Python 2.7 | `python3 -m pip install -r requirements.txt` |
 | `pulp` install fails with "no module named distutils" | Python 3.12+ removed distutils | already fixed in PuLP ≥ 2.7; `pip install -U pulp` |
 | `Address already in use` on `:8000` | another process holds the port | `PORT=8001 uvicorn gridwise.app:app --port 8001` or `lsof -i :8000` |
-| `ModuleNotFoundError: No module named 'gridwise'` | forgot `PYTHONPATH=src` | `export PYTHONPATH=src` in the same shell |
+| `ModuleNotFoundError: No module named 'gridwise'` | forgot `PYTHONPATH=src` | `export PYTHONPATH=src` (bash/zsh) / `set PYTHONPATH=src` (cmd) / `$env:PYTHONPATH = "src"` (PowerShell) — must match the shell you're actually in |
 | `groq: 404 Not Found` | merged default model retired on Groq | set `GROQ_MODEL=openai/gpt-oss-20b` in `.env` |
 | UI returns 404 on `/ui` | gated behind `ENABLE_UI=true` | `echo "ENABLE_UI=true" >> .env` and restart |
 | WSL: `bash: uvicorn: not found` after activation | activation didn't actually run | `source venv/bin/activate && which uvicorn` |
