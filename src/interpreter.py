@@ -8,6 +8,10 @@ import json
 import re
 import requests
 from typing import List, Dict, Any, Optional
+from dotenv import load_dotenv
+
+load_dotenv()
+
 try:
     from src.guardrails import validate_and_sanitize_interpretation
 except ImportError:
@@ -228,9 +232,48 @@ def fallback_heuristic_interpret(note: str, note_index: int, battery_data: Dict[
         "explanation": "No applicable directive recognized; treated as no_op."
     }
 
+def call_puku_api(prompt: str, api_key: str, base_url: str = "https://api-cli.puku.sh", model: Optional[str] = None) -> Optional[List[Dict[str, Any]]]:
+    """Calls Puku.sh Anthropic-compatible messages API endpoint."""
+    url = f"{base_url.rstrip('/')}/v1/messages"
+    headers = {
+        "x-api-key": api_key,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json"
+    }
+    model_name = model or os.getenv("PUKU_MODEL", "puku-ai-2.8")
+    payload = {
+        "model": model_name,
+        "max_tokens": 1500,
+        "messages": [
+            {"role": "user", "content": prompt}
+        ]
+    }
+    timeout = int(os.getenv("PUKU_TIMEOUT", "25"))
+    try:
+        resp = requests.post(url, headers=headers, json=payload, timeout=timeout)
+        if resp.status_code == 200:
+            res_json = resp.json()
+            parts = res_json.get("content", [])
+            text = "".join([p.get("text", "") for p in parts if p.get("type") == "text"]).strip()
+            if text.startswith("```"):
+                text = re.sub(r"^```(?:json)?\s*", "", text)
+                text = re.sub(r"\s*```$", "", text)
+            parsed = json.loads(text)
+            if isinstance(parsed, list):
+                return parsed
+            elif isinstance(parsed, dict) and "directives" in parsed:
+                return parsed["directives"]
+            elif isinstance(parsed, dict):
+                for v in parsed.values():
+                    if isinstance(v, list): return v
+    except Exception as e:
+        print(f"[Puku API Warning] LLM call failed: {e}")
+    return None
+
 def call_gemini_api(prompt: str, api_key: str) -> Optional[List[Dict[str, Any]]]:
-    """Calls Gemini 2.5 Flash via REST API with response_mime_type application/json."""
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+    """Calls Gemini via REST API with response_mime_type application/json."""
+    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
     headers = {"Content-Type": "application/json"}
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
@@ -291,14 +334,16 @@ def interpret_operator_notes(
     """
     Interprets operator notes into machine-checkable directives.
     Workflow:
-      1. If GEMINI_API_KEY is present, queries Gemini 2.5 Flash.
-      2. If OPENAI_API_KEY is present, queries OpenAI/Groq model.
-      3. If no key or API fails, uses deterministic semantic fallback parser.
-      4. Passes through deterministic guardrails to guarantee 100% schema compliance.
+      1. If PUKU_API_KEY is present, queries Puku.sh AI endpoint.
+      2. If GEMINI_API_KEY is present, queries Gemini.
+      3. If OPENAI_API_KEY is present, queries OpenAI/Groq model.
+      4. If no key or API fails, uses deterministic semantic fallback parser.
+      5. Passes through deterministic guardrails to guarantee 100% schema compliance.
     """
     raw_results = None
     
     # Check for API keys
+    puku_key = os.getenv("PUKU_API_KEY")
     gemini_key = os.getenv("GEMINI_API_KEY")
     openai_key = os.getenv("OPENAI_API_KEY") or os.getenv("GROQ_API_KEY")
     
@@ -313,8 +358,13 @@ Operator Notes to interpret:
 
 Please return the JSON array of directive interpretations in note_index order."""
 
-    if gemini_key:
-        full_prompt = f"{SYSTEM_PROMPT}\n\n{user_prompt}"
+    full_prompt = f"{SYSTEM_PROMPT}\n\n{user_prompt}"
+
+    if puku_key:
+        puku_base = os.getenv("PUKU_BASE_URL", "https://api-cli.puku.sh")
+        raw_results = call_puku_api(full_prompt, puku_key, puku_base)
+
+    if raw_results is None and gemini_key:
         raw_results = call_gemini_api(full_prompt, gemini_key)
         
     if raw_results is None and openai_key:

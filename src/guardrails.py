@@ -3,6 +3,7 @@ guardrails.py - Deterministic Guardrail Validator and Sanitizer
 Enforces canonical rules defined in Section 04, 05, and 08 of the Problem Statement.
 """
 
+import re
 from typing import List, Dict, Any, Optional
 
 ALLOWED_DIRECTIVES = {
@@ -13,6 +14,66 @@ ALLOWED_DIRECTIVES = {
     "max_grid_window",
     "no_op"
 }
+
+def parse_time_window(text: str) -> List[int]:
+    """
+    Extracts start-inclusive, end-exclusive hours from natural language text.
+    Handles 'from X until Y', 'between X and Y', 'X to Y', 'noon', 'midnight'.
+    """
+    text_lower = text.lower()
+    
+    def parse_hour_str(h_str: str, default_period: Optional[str] = None) -> Optional[int]:
+        h_str = h_str.strip()
+        if "noon" in h_str:
+            return 12
+        if "midnight" in h_str:
+            return 0
+        match = re.search(r"(\d+)(?::00)?\s*(am|pm)?", h_str)
+        if not match:
+            return None
+        val = int(match.group(1))
+        period = match.group(2) or default_period
+        if period == "pm" and val < 12:
+            val += 12
+        elif period == "am" and val == 12:
+            val = 0
+        return val
+
+    # Patterns like: from <start> until/to <end>, between <start> and <end>, <start> - <end>
+    patterns = [
+        r"(?:from|between)\s+([0-9]+(?::00)?\s*(?:am|pm)?|noon|midnight)\s+(?:until|to|and|-)\s+([0-9]+(?::00)?\s*(?:am|pm)?|noon|midnight)",
+        r"([0-9]+(?::00)?\s*(?:am|pm)?)\s+(?:until|to|-)\s+([0-9]+(?::00)?\s*(?:am|pm)?)",
+        r"([0-9]+)-([0-9]+)\s*(am|pm)\s+window"
+    ]
+    
+    start_h, end_h = None, None
+    for pat in patterns:
+        m = re.search(pat, text_lower)
+        if m:
+            g = m.groups()
+            if len(g) == 3 and g[2] in ("am", "pm"): # e.g. 1-3 PM window
+                period = g[2]
+                start_h = parse_hour_str(g[0], period)
+                end_h = parse_hour_str(g[1], period)
+            else:
+                end_str = g[1]
+                end_period = "pm" if "pm" in end_str else ("am" if "am" in end_str else None)
+                start_h = parse_hour_str(g[0], end_period)
+                end_h = parse_hour_str(g[1], end_period)
+            break
+            
+    # 24-hour format e.g. 13:00 and 15:00
+    if start_h is None:
+        m24 = re.search(r"(\d{1,2}):00\s*(?:and|to|until|-)\s*(\d{1,2}):00", text_lower)
+        if m24:
+            start_h = int(m24.group(1))
+            end_h = int(m24.group(2))
+            
+    if start_h is not None and end_h is not None:
+        if end_h > start_h and 0 <= start_h < 24 and end_h <= 24:
+            return list(range(start_h, end_h))
+            
+    return []
 
 def sanitize_hours(raw_hours: Any) -> List[int]:
     """
@@ -88,7 +149,8 @@ def validate_and_sanitize_interpretation(
             if not isinstance(adj, dict):
                 adj = {}
                 
-            hours = sanitize_hours(adj.get("hours", []))
+            canonical_hours = parse_time_window(operator_notes[idx])
+            hours = canonical_hours if canonical_hours else sanitize_hours(adj.get("hours", []))
             # If hours is empty for a window directive, fallback to no_op
             if not hours:
                 cleaned_by_index[idx] = {

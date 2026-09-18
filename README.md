@@ -106,10 +106,16 @@ Create a `.env` file in the root directory (or pass via environment variables):
 # Service Port
 PORT=8000
 
-# Primary LLM Option A: Google Gemini (Recommended)
-GEMINI_API_KEY=your_google_gemini_api_key
+# Primary LLM Option A: Puku.sh AI
+PUKU_API_KEY=your_puku_api_key
+# PUKU_BASE_URL=https://api-cli.puku.sh
+# PUKU_MODEL=puku-ai-2.8
 
-# LLM Option B: OpenAI / Groq / OpenAI-compatible endpoint
+# LLM Option B: Google Gemini
+# GEMINI_API_KEY=your_google_gemini_api_key
+# GEMINI_MODEL=gemini-2.5-flash
+
+# LLM Option C: OpenAI / Groq / OpenAI-compatible endpoint
 # OPENAI_API_KEY=your_openai_or_groq_key
 # OPENAI_BASE_URL=https://api.groq.com/openai/v1
 # OPENAI_MODEL=llama-3.3-70b-versatile
