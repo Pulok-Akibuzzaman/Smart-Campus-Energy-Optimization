@@ -407,8 +407,11 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
             <div class="panel">
               <div class="panel-title">
-                <span>Input: Natural Language Notes</span>
-                <span class="badge badge-blue" id="notesBadge">Notes</span>
+                <div>
+                  <span>Input: Natural Language Notes</span>
+                  <span class="badge badge-blue" id="notesBadge">Notes</span>
+                </div>
+                <button class="btn btn-primary" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="addNewNote()">+ Add Note</button>
               </div>
               <div id="notesContainer" style="display: flex; flex-direction: column; gap: 0.6rem;"></div>
             </div>
@@ -556,6 +559,17 @@
         currentCaseData.operator_notes[idx] = val;
         document.getElementById('jsonEditor').value = JSON.stringify(currentCaseData, null, 2);
       }
+    }
+
+    function addNewNote() {
+      if (!currentCaseData) return;
+      if (!currentCaseData.operator_notes) currentCaseData.operator_notes = [];
+      if (currentCaseData.operator_notes.length >= 3) {
+        alert("The GridWise specification limits scenarios to a maximum of 3 notes.");
+        return;
+      }
+      currentCaseData.operator_notes.push("");
+      populateUIFromData();
     }
 
     function applyJsonAndRun() {
