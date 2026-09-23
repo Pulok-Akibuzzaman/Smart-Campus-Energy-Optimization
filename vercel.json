@@ -1,8 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "echo 'GridWise uses Vercel\'s auto-detected Python framework preset; no build step needed'",
   "installCommand": "pip install -r requirements.txt",
-  "framework": null,
   "functions": {
     "api/index.py": {
       "maxDuration": 60,
