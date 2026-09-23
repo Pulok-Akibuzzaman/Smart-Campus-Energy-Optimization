@@ -594,7 +594,6 @@ Smart-Campus-Energy-Optimization/
 ├── Procfile                    # Railway / Heroku entry
 ├── api/
 │   └── index.py                # Vercel serverless entrypoint (FastAPI shim)
-├── vercel.json                 # Vercel deploy config (maxDuration=60, 2 GB)
 ├── pyproject.toml              # PEP 621 metadata + pip-installable source
 ├── pytest.ini                  # asyncio_mode=auto
 ├── railway.toml                # Railway deploy config (PORT-aware CMD)
@@ -689,18 +688,18 @@ All four honor `$PORT` — no code changes needed.
 ### 10.2c Vercel (serverless Python functions)
 
 Vercel runs Python natively as Vercel Functions — no Docker needed. The repo
-already ships with `vercel.json` and `api/index.py`, so:
+ships with `api/index.py` as the FastAPI entrypoint and lets Vercel auto-detect
+the rest:
 
 1. Sign in at <https://vercel.com> with GitHub
 2. **Add New Project → Import** `Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization`
-3. Vercel auto-detects Python + FastAPI. Leave build/install commands blank.
+3. Vercel auto-detects Python + FastAPI from `requirements.txt` + `api/index.py`. No `vercel.json` is needed.
 4. **Environment Variables** → add: `GROQ_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`
 5. Click **Deploy**. First deploy takes ~2 min (pulls scipy + PuLP wheels).
 
-The shim (`api/index.py`) wires the FastAPI app from `src/gridwise/app.py`,
-forces `ENABLE_UI=false` (no `docker` CLI in the serverless runtime), and
-sets `maxDuration=60s` + `memory=2048 MB` in `vercel.json`. The
-`/optimize-energy` solver runs in ~10 ms so the timeout is comfortable.
+The shim (`api/index.py`) wires the FastAPI app from `src/gridwise/app.py` and
+forces `ENABLE_UI=false` (no `docker` CLI in the serverless runtime). The
+`/optimize-energy` solver runs in ~10 ms.
 
 **Caveats vs the Docker deploy:**
 
