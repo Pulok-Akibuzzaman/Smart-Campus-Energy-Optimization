@@ -62,3 +62,6 @@ docker-build/
 # ──────────── Test outputs ────────────
 test_output/
 test_results/
+
+# ──────────── Tooling ────────────
+.puku-cli/
