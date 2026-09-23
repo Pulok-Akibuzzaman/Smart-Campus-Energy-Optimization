@@ -36,6 +36,24 @@ log = logging.getLogger(__name__)
 
 router = APIRouter()
 
+
+# ─────────────────────────── Serverless detection ──────────────────────────
+
+
+def _is_serverless() -> bool:
+    """True when running inside a serverless runtime (Vercel, Lambda, Cloud Run).
+
+    On these platforms there's no localhost binding to call back to from one
+    HTTP handler to another, so /ui/api/* endpoints that test the live API
+    over HTTP must either skip the call (preferred) or call the handler
+    directly in-process.
+    """
+    return bool(
+        os.getenv("VERCEL")
+        or os.getenv("AWS_LAMBDA_FUNCTION_NAME")
+        or os.getenv("K_SERVICE")
+    )
+
 # ─────────────────────────── Path resolution ─────────────────────────
 
 # /home/biloi/Hackathon/ai-will-fix-it/src/gridwise/ui.py
@@ -73,13 +91,20 @@ async def service_info() -> Dict[str, Any]:
     t0 = time.time()
     health_ms = None
     health_status = None
-    try:
-        async with httpx.AsyncClient(timeout=2.0) as client:
-            r = await client.get(f"http://127.0.0.1:{CFG.PORT}/health")
-        health_status = r.status_code
+
+    if _is_serverless():
+        # Self-report: we just served this endpoint, so we're healthy by
+        # definition. No loopback call — there's no localhost binding.
+        health_status = 200
         health_ms = round((time.time() - t0) * 1000, 2)
-    except Exception as e:
-        health_status = f"error: {e}"
+    else:
+        try:
+            async with httpx.AsyncClient(timeout=2.0) as client:
+                r = await client.get(f"http://127.0.0.1:{CFG.PORT}/health")
+            health_status = r.status_code
+            health_ms = round((time.time() - t0) * 1000, 2)
+        except Exception as e:
+            health_status = f"error: {e}"
 
     return {
         "pid": os.getpid(),
@@ -90,6 +115,7 @@ async def service_info() -> Dict[str, Any]:
             "status_code": health_status,
             "latency_ms": health_ms,
         },
+        "environment": "serverless" if _is_serverless() else "process",
     }
 
 
@@ -103,6 +129,15 @@ def _battery_dict(case_input: Dict[str, Any]) -> Dict[str, float]:
 @router.get("/schema-tests")
 async def schema_tests() -> Dict[str, Any]:
     """Run a battery of malformed/edge inputs against /optimize-energy."""
+    if _is_serverless():
+        # These tests need to hit /optimize-energy over HTTP to exercise the
+        # request-validation boundary. On serverless there's no localhost
+        # binding to call back to, so the test would always fail. Run the
+        # equivalent unit tests via `pytest tests/test_validator.py` instead.
+        return {
+            "skipped": True,
+            "reason": "schema-tests requires a localhost HTTP loopback, which is unavailable in serverless runtimes. Run `pytest tests/test_validator.py -v` against the deployed code to exercise the same checks.",
+        }
     samples = _load_samples()
     if not samples:
         return {"error": "samples not found"}
@@ -224,22 +259,61 @@ async def run_sample(case_id: str, mode: str = Query("llm")) -> Dict[str, Any]:
         }
 
     # mode == "llm" (default): live call through the public endpoint.
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            r = await client.post(base_url, json=case["input"])
-        elapsed_ms = round((time.time() - t0) * 1000, 2)
-        body = r.json() if r.headers.get("content-type", "").startswith("application/json") else {"raw": r.text}
-        diff = None
-        if r.status_code == 200 and isinstance(body, dict):
-            diff = {
-                "grid_diff": round(body.get("total_grid_kwh", 0) - expected["total_grid_kwh"], 2),
-                "cost_diff": round(body.get("total_cost_bdt", 0) - expected["total_cost_bdt"], 2),
-                "peak_diff": round(body.get("peak_grid_kwh", 0) - expected["peak_grid_kwh"], 2),
+    # On serverless there's no localhost to call back to, so we invoke the
+    # FastAPI handler in-process. The handler is still exercised end-to-end
+    # (Pydantic validation + LLM chain + optimizer + replay), only the
+    # transport layer changes from HTTP to a direct function call.
+    elapsed_ms: float
+    body: Dict[str, Any]
+    status_code: int
+
+    if _is_serverless():
+        try:
+            from .app import optimize_energy  # local import to avoid cycle
+            from .schemas import OptimizeRequest
+
+            req = OptimizeRequest.model_validate(case["input"])
+            resp = await optimize_energy(req)
+            elapsed_ms = round((time.time() - t0) * 1000, 2)
+            body = resp.model_dump(mode="json")
+            status_code = 200
+        except Exception as e:
+            elapsed_ms = round((time.time() - t0) * 1000, 2)
+            return {
+                "case_id": case_id,
+                "mode": "llm",
+                "status": "error",
+                "error": str(e),
+                "elapsed_ms": elapsed_ms,
             }
-        return {
+    else:
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                r = await client.post(base_url, json=case["input"])
+            elapsed_ms = round((time.time() - t0) * 1000, 2)
+            status_code = r.status_code
+            body = r.json() if r.headers.get("content-type", "").startswith("application/json") else {"raw": r.text}
+        except Exception as e:
+            elapsed_ms = round((time.time() - t0) * 1000, 2)
+            return {
+                "case_id": case_id,
+                "mode": "llm",
+                "status": "error",
+                "error": str(e),
+                "elapsed_ms": elapsed_ms,
+            }
+
+    diff = None
+    if status_code == 200 and isinstance(body, dict):
+        diff = {
+            "grid_diff": round(body.get("total_grid_kwh", 0) - expected["total_grid_kwh"], 2),
+            "cost_diff": round(body.get("total_cost_bdt", 0) - expected["total_cost_bdt"], 2),
+            "peak_diff": round(body.get("peak_grid_kwh", 0) - expected["peak_grid_kwh"], 2),
+        }
+    return {
             "case_id": case_id,
             "mode": "llm",
-            "status": r.status_code,
+            "status": status_code,
             "elapsed_ms": elapsed_ms,
             "response": body,
             "expected": {
@@ -250,8 +324,6 @@ async def run_sample(case_id: str, mode: str = Query("llm")) -> Dict[str, Any]:
             },
             "diff": diff,
         }
-    except Exception as e:
-        return {"error": str(e), "case_id": case_id, "mode": mode}
 
 
 # ─────────────────────────── All samples ────────────────────────────
@@ -298,38 +370,44 @@ async def run_all_samples(mode: str = Query("llm")) -> Dict[str, Any]:
             except Exception as e:
                 rows.append({"case_id": case["id"], "error": str(e)})
     else:
-        base_url = f"http://127.0.0.1:{CFG.PORT}/optimize-energy"
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            for case in samples:
-                t0 = time.time()
-                try:
-                    r = await client.post(base_url, json=case["input"])
-                    elapsed_ms = round((time.time() - t0) * 1000, 2)
-                    body = r.json()
-                    expected = case["expected_output"]
-                    team_cost = body.get("total_cost_bdt", 0)
-                    org_cost = expected["total_cost_bdt"]
-                    ratio = min(1.0, org_cost / team_cost) if team_cost > 0.01 else (1.0 if org_cost <= 0.01 else 0.0)
-                    rows.append(
-                        {
-                            "case_id": case["id"],
-                            "label": case.get("label", ""),
-                            "status": r.status_code,
-                            "elapsed_ms": elapsed_ms,
-                            "team_cost": team_cost,
-                            "expected_cost": org_cost,
-                            "cost_diff": round(team_cost - org_cost, 2),
-                            "team_grid": body.get("total_grid_kwh"),
-                            "expected_grid": expected["total_grid_kwh"],
-                            "directive_types": [
-                                d["directive_type"]
-                                for d in body.get("directive_interpretation", [])
-                            ],
-                            "quality_ratio": round(ratio, 4),
-                        }
-                    )
-                except Exception as e:
-                    rows.append({"case_id": case["id"], "error": str(e)})
+        # LLM mode: hit /optimize-energy. On serverless there's no localhost
+        # binding, so we call the FastAPI handler in-process.
+        from .app import optimize_energy  # local import to avoid cycle
+        from .schemas import OptimizeRequest
+
+        for case in samples:
+            t0 = time.time()
+            try:
+                req = OptimizeRequest.model_validate(case["input"])
+                resp = await optimize_energy(req)
+                elapsed_ms = round((time.time() - t0) * 1000, 2)
+                body = resp.model_dump(mode="json")
+                r_status = 200
+            except Exception as e:
+                rows.append({"case_id": case["id"], "error": str(e)})
+                continue
+            expected = case["expected_output"]
+            team_cost = body.get("total_cost_bdt", 0)
+            org_cost = expected["total_cost_bdt"]
+            ratio = min(1.0, org_cost / team_cost) if team_cost > 0.01 else (1.0 if org_cost <= 0.01 else 0.0)
+            rows.append(
+                {
+                    "case_id": case["id"],
+                    "label": case.get("label", ""),
+                    "status": r_status,
+                    "elapsed_ms": elapsed_ms,
+                    "team_cost": team_cost,
+                    "expected_cost": org_cost,
+                    "cost_diff": round(team_cost - org_cost, 2),
+                    "team_grid": body.get("total_grid_kwh"),
+                    "expected_grid": expected["total_grid_kwh"],
+                    "directive_types": [
+                        d["directive_type"]
+                        for d in body.get("directive_interpretation", [])
+                    ],
+                    "quality_ratio": round(ratio, 4),
+                }
+            )
 
     valid_count = sum(1 for r in rows if r.get("valid") is True or (r.get("status") == 200))
     avg_ratio = 0.0
@@ -638,19 +716,36 @@ async def perf_burst(count: int = Query(20)) -> Dict[str, Any]:
     if not samples:
         return {"error": "samples not found"}
     case = samples[0]
-    base_url = f"http://127.0.0.1:{CFG.PORT}/optimize-energy"
 
     statuses: List[int] = []
     latencies: List[float] = []
-    async with httpx.AsyncClient(timeout=30.0) as client:
+
+    # On serverless there's no localhost binding, so call the FastAPI
+    # handler in-process. Otherwise keep the original loopback semantics.
+    if _is_serverless():
+        from .app import optimize_energy  # local import to avoid cycle
+        from .schemas import OptimizeRequest
+
+        req = OptimizeRequest.model_validate(case["input"])
         for _ in range(count):
             t0 = time.time()
             try:
-                r = await client.post(base_url, json=case["input"])
-                statuses.append(r.status_code)
+                await optimize_energy(req)
+                statuses.append(200)
                 latencies.append((time.time() - t0) * 1000.0)
             except Exception:
                 statuses.append(0)
+    else:
+        base_url = f"http://127.0.0.1:{CFG.PORT}/optimize-energy"
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            for _ in range(count):
+                t0 = time.time()
+                try:
+                    r = await client.post(base_url, json=case["input"])
+                    statuses.append(r.status_code)
+                    latencies.append((time.time() - t0) * 1000.0)
+                except Exception:
+                    statuses.append(0)
 
     if not latencies:
         return {"error": "no successful requests"}
@@ -759,12 +854,21 @@ async def directive_diff(case_id: str, mode: str = Query("llm")) -> Dict[str, An
             ],
         }
 
-    # LLM path: hit the live endpoint
-    base_url = f"http://127.0.0.1:{CFG.PORT}/optimize-energy"
+    # LLM path: hit the live endpoint (or call the handler in-process
+    # on serverless where there's no localhost binding).
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            r = await client.post(base_url, json=case["input"])
-        body = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
+        if _is_serverless():
+            from .app import optimize_energy  # local import to avoid cycle
+            from .schemas import OptimizeRequest
+
+            req = OptimizeRequest.model_validate(case["input"])
+            resp = await optimize_energy(req)
+            body = resp.model_dump(mode="json")
+        else:
+            base_url = f"http://127.0.0.1:{CFG.PORT}/optimize-energy"
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                r = await client.post(base_url, json=case["input"])
+            body = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
         actual_directives = body.get("directive_interpretation", [])
     except Exception as e:
         return {"error": str(e)}
@@ -850,14 +954,24 @@ async def export_response(case_id: str, mode: str = Query("llm")) -> Dict[str, A
     if not case:
         return {"error": f"case {case_id} not found"}
 
-    base_url = f"http://127.0.0.1:{CFG.PORT}/optimize-energy"
     if mode == "math":
         return {"error": "math mode does not produce a single OptimizeResponse; use /run-sample/{id}?mode=math"}
 
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            r = await client.post(base_url, json=case["input"])
-        body = r.json() if r.headers.get("content-type", "").startswith("application/json") else {"raw": r.text[:2000]}
+        if _is_serverless():
+            from .app import optimize_energy  # local import to avoid cycle
+            from .schemas import OptimizeRequest
+
+            req = OptimizeRequest.model_validate(case["input"])
+            resp = await optimize_energy(req)
+            body = resp.model_dump(mode="json")
+            r_status = 200
+        else:
+            base_url = f"http://127.0.0.1:{CFG.PORT}/optimize-energy"
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                r = await client.post(base_url, json=case["input"])
+            body = r.json() if r.headers.get("content-type", "").startswith("application/json") else {"raw": r.text[:2000]}
+            r_status = r.status_code
     except Exception as e:
         return {"error": str(e)}
 
@@ -866,6 +980,6 @@ async def export_response(case_id: str, mode: str = Query("llm")) -> Dict[str, A
     return {
         "filename_suggestion": f"gridwise_{case_id}_{mode}_{ts}.json",
         "response": body,
-        "status": r.status_code,
+        "status": r_status,
         "fetched_at": ts,
     }
