@@ -327,11 +327,20 @@ curl -s http://127.0.0.1:8000/health
 curl -s http://127.0.0.1:8000/health
 # -> {"status":"ok"}
 
-# Run all 10 public sample cases through the optimizer (math path only,
-# bypasses the LLM by feeding the expected directive list directly)
+# Run the full suite (math path + provider chain + validator + load burst)
+PYTHONPATH=src pytest -q
+# Expected: 37/37 pass
+
+# Or scope to the public-case regression:
 PYTHONPATH=src pytest tests/test_hybrid_optimizer.py -v
-# Expected: 13/13 pass — 10 cost-diff cases + 2 aggregates + 1 fallback
+# Expected: 12 pass — 10 cost-diff cases + 2 aggregate checks
 ```
+
+> The 10 public sample cases are loaded from
+> `BUP_CSE_FEST_2026_Preli_Public_Sample_Cases.json` at the repo root. If you
+> checked the project out before this file was committed, copy it there
+> manually (it's the same payload originally added by the Aurna branch under
+> `data/`).
 
 ---
 
