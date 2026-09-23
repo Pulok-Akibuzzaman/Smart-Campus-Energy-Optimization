@@ -106,7 +106,12 @@ async def health() -> HealthResponse:
 
 @app.get("/", include_in_schema=False)
 async def root():
-    return RedirectResponse(url="/docs", status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+    # When the debug UI is enabled (ENABLE_UI=true) prefer it over the API
+    # docs — visiting the root URL should land on the interactive console.
+    # When the UI is off (production deploys without judges/devs), fall
+    # back to /docs so the root is still useful.
+    target = "/ui" if CFG.ENABLE_UI else "/docs"
+    return RedirectResponse(url=target, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
 
 
 @app.get("/favicon.ico", include_in_schema=False)
