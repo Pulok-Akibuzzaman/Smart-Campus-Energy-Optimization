@@ -42,15 +42,20 @@ router = APIRouter()
 #   └── (3 levels up) ──┘       └── (4 levels up) ──┘
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent  # ai-will-fix-it
 REPO_PARENT = PROJECT_ROOT.parent  # /home/biloi/Hackathon
-SAMPLES_PATH = REPO_PARENT / "BUP_CSE_FEST_2026_Preli_Public_Sample_Cases.json"
+SAMPLES_FILENAME = "BUP_CSE_FEST_2026_Preli_Public_Sample_Cases.json"
+SAMPLES_PATH = REPO_PARENT / SAMPLES_FILENAME
+# Fallback: when the project is checked out as a standalone repo (no parent
+# Hackathon/ directory), the same JSON also lives at the repo root.
+SAMPLES_PATH_REPO_ROOT = PROJECT_ROOT / SAMPLES_FILENAME
 
 
 def _load_samples() -> Optional[List[Dict[str, Any]]]:
-    if not SAMPLES_PATH.exists():
+    path = SAMPLES_PATH if SAMPLES_PATH.exists() else SAMPLES_PATH_REPO_ROOT
+    if not path.exists():
         log.warning("Public samples file not found at %s", SAMPLES_PATH)
         return None
     try:
-        with SAMPLES_PATH.open() as f:
+        with path.open() as f:
             return json.load(f)["cases"]
     except Exception as e:
         log.warning("Failed to load samples: %s", e)
