@@ -1,14 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "pip install -r requirements.txt",
-  "functions": {
-    "api/index.py": {
-      "maxDuration": 60,
-      "memory": 2048,
-      "excludeFiles": "{tests/**,docs/**,**/*.md,publish.sh,Procfile,railway.toml,Dockerfile,docker-compose.yml,pytest.ini,.dockerignore,.gitignore}"
-    }
-  },
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/api/index" }
-  ]
+  "installCommand": "pip install -r requirements.txt"
 }
