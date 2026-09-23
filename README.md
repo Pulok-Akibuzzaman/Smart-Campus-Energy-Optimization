@@ -31,6 +31,8 @@ An LLM-assisted 24-hour energy scheduler. Receives a 24-hour campus energy scena
 9. [Project layout](#8-project-layout)
 10. [Demo video](#9-demo-video)
 11. [Deployment](#10-deployment)
+    - 10.2b [Render / Fly.io / Heroku alternatives](#102b-render--flyio--heroku-alternatives)
+    - 10.2c [Vercel (serverless)](#102c-vercel-serverless-python-functions)
 12. [Known limitations](#11-known-limitations)
 13. [Debug UI](#12-local-debug-ui-off-by-default)
 14. [Credits](#13-credits-three-branches-one-submission)
@@ -590,10 +592,13 @@ Smart-Campus-Energy-Optimization/
 ├── .gitignore
 ├── README.md                   # this file
 ├── Procfile                    # Railway / Heroku entry
+├── api/
+│   └── index.py                # Vercel serverless entrypoint (FastAPI shim)
+├── vercel.json                 # Vercel deploy config (maxDuration=60, 2 GB)
 ├── pyproject.toml              # PEP 621 metadata + pip-installable source
 ├── pytest.ini                  # asyncio_mode=auto
 ├── railway.toml                # Railway deploy config (PORT-aware CMD)
-├── runtime.txt                 # Python version pin for Railway
+├── runtime.txt                 # Python version pin (3.12.10)
 ├── requirements.txt            # pip mirror of pyproject deps
 ├── publish.sh                  # one-shot Docker Hub push (see §10.3)
 ├── docs/
@@ -680,6 +685,33 @@ Same Docker image works on any platform that runs containers:
 | **DigitalOcean App Platform** | $0 basic tier | "Deploy from GitHub" → picks the Dockerfile |
 
 All four honor `$PORT` — no code changes needed.
+
+### 10.2c Vercel (serverless Python functions)
+
+Vercel runs Python natively as Vercel Functions — no Docker needed. The repo
+already ships with `vercel.json` and `api/index.py`, so:
+
+1. Sign in at <https://vercel.com> with GitHub
+2. **Add New Project → Import** `Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization`
+3. Vercel auto-detects Python + FastAPI. Leave build/install commands blank.
+4. **Environment Variables** → add: `GROQ_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`
+5. Click **Deploy**. First deploy takes ~2 min (pulls scipy + PuLP wheels).
+
+The shim (`api/index.py`) wires the FastAPI app from `src/gridwise/app.py`,
+forces `ENABLE_UI=false` (no `docker` CLI in the serverless runtime), and
+sets `maxDuration=60s` + `memory=2048 MB` in `vercel.json`. The
+`/optimize-energy` solver runs in ~10 ms so the timeout is comfortable.
+
+**Caveats vs the Docker deploy:**
+
+- `/ui` (debug console) is **disabled** on Vercel by default. The UI shells
+  out to `docker` for the docker-status tab, which isn't present. If you
+  really want it, set `ENABLE_UI=true` in Vercel env vars — the other tabs
+  will still work.
+- Hobby tier caps requests at **300 s and 4.5 MB body**. Both are well
+  above our actual usage (24-hour JSON < 5 KB, solve < 100 ms).
+- Cold starts are slower than the Docker image (~2 s vs <100 ms) because
+  scipy + PuLP need to import on every fresh container.
 
 ### 10.3 Publish a new image (one-shot)
 
