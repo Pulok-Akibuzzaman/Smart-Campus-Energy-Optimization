@@ -3,8 +3,55 @@
 > **BUP CSE Fest 2026 — Hackathon Preliminary · Final Submission**
 > **Team:** *Ai-Will-Fix-It*
 > **Docker image:** `ashikonik/gridwise-bup-2026:1.0.0`
+> **Repo:** [`Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization`](https://github.com/Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization)
 
 An LLM-assisted 24-hour energy scheduler. Receives a 24-hour campus energy scenario plus 1–3 free-form operator notes, interprets each note via a 4-provider LLM chain, applies 12 deterministic guardrails, solves a hybrid linear program, and returns a valid minimum-cost battery + grid schedule — matching the reference optimum to the paisa on all 10 public cases.
+
+---
+
+## Table of Contents
+
+0. [Quick start (TL;DR)](#0-quick-start-tldr)
+1. [Why this exists](#why-this-exists)
+2. [Architecture](#1-architecture-in-one-screen)
+3. [Local quickstart — pick your device](#2-local-quickstart-pick-your-device)
+   - 2.1 [Cloud IDE (no local install)](#21-cloud-ide-zero-setup)
+   - 2.2 [Linux / macOS / WSL](#22-linux-macos-wsl-one-block)
+   - 2.3 [Windows native (PowerShell)](#23-windows-native-powershell)
+   - 2.4 [Docker](#24-docker-production-parity)
+   - 2.5 [Mobile / tablet / Chromebook](#25-mobile-tablet-chromebook)
+   - 2.6 [Run as a systemd service](#26-run-as-a-systemd-service-linux)
+   - 2.7 [Verify it works](#27-verify-it-works)
+   - 2.8 [Common pitfalls](#28-common-pitfalls-any-platform)
+4. [Endpoints](#3-endpoints)
+5. [Environment variables](#4-environment-variables)
+6. [LLM provider chain](#5-llm-provider-chain)
+7. [Optimizer (hybrid)](#6-optimizer-the-hybrid)
+8. [Testing](#7-testing)
+9. [Project layout](#8-project-layout)
+10. [Demo video](#9-demo-video)
+11. [Deployment](#10-deployment)
+12. [Known limitations](#11-known-limitations)
+13. [Debug UI](#12-local-debug-ui-off-by-default)
+14. [Credits](#13-credits-three-branches-one-submission)
+
+---
+
+## 0. Quick start (TL;DR)
+
+**Already have Python 3.10+?** Three lines:
+
+```bash
+git clone https://github.com/Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization.git
+cd Smart-Campus-Energy-Optimization
+pip install -r requirements.txt && PYTHONPATH=src uvicorn gridwise.app:app --host 0.0.0.0 --port 8000
+```
+
+Then open <http://127.0.0.1:8000/docs> for the API, or <http://127.0.0.1:8000/ui> for the interactive console (after `echo ENABLE_UI=true >> .env` and restart).
+
+**No Python locally?** Skip to [§2.1 Cloud IDE](#21-cloud-ide-zero-setup) or [§2.4 Docker](#24-docker-production-parity).
+
+**Prerequisites in one line:** Python ≥ 3.10, pip, ~150 MB disk, one free LLM API key (Groq recommended).
 
 ---
 
@@ -83,199 +130,197 @@ The principle from the rubric is mirrored at every layer: **never trust the prev
 
 ---
 
-## 2. Local quickstart
+## 2. Local quickstart — pick your device
 
-### 2.1 Native Python (development)
+The app is pure-Python. The only system requirement is a working Python and pip. CBC (PuLP's bundled solver) and scipy both ship as wheels — **no compiler, no `apt build-dep`, no system CBC install is required** on any platform.
+
+| Platform | Python | Status |
+|---|---|---|
+| Ubuntu 22.04 / 24.04 LTS | 3.10, 3.11, 3.12 | ✅ |
+| Debian 12 (Bookworm) | 3.10, 3.11 | ✅ |
+| Fedora 39 / 40 / 41 | 3.11, 3.12, 3.13 | ✅ |
+| RHEL 9 / Rocky 9 / AlmaLinux 9 | 3.10, 3.11, 3.12 | ✅ |
+| Arch / Manjaro (rolling) | 3.12 | ✅ |
+| openSUSE Leap 15.6 / Tumbleweed | 3.11 | ✅ |
+| Alpine 3.20+ | 3.11 | ✅ (musl libc; PuLP wheel is pure Python) |
+| macOS 13 Ventura / 14 Sonoma / 15 Sequoia | 3.10, 3.11, 3.12, 3.13 | ✅ (Apple Silicon + Intel) |
+| Windows 11 native | 3.10, 3.11, 3.12, 3.13 | ✅ (use `venv\Scripts\activate`) |
+| Windows 11 + WSL2 (Ubuntu) | 3.10, 3.11, 3.12 | ✅ (recommended) |
+| ChromeOS (Linux dev container) | 3.11 | ✅ |
+| Cloud IDE (Codespaces / Gitpod / Replit) | 3.11 | ✅ |
+| iOS / Android (via cloud IDE + browser) | n/a | ✅ (no local install) |
+
+---
+
+### 2.1 Cloud IDE — zero setup
+
+If you don't want to touch your machine at all, open the repo in a cloud IDE and skip directly to running it.
+
+**GitHub Codespaces** (free 60 hr/month):
+1. Go to <https://github.com/Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization>
+2. Click **`Code` → `Codespaces` → `Create codespace on main`**
+3. Wait ~90 s for the container to build (Python 3.11, all deps pre-installed via `.devcontainer` if present, otherwise just `pip install -r requirements.txt`)
+4. In the integrated terminal:
+   ```bash
+   cp .env.example .env && nano .env   # add GROQ_API_KEY=...
+   export PYTHONPATH=src
+   uvicorn gridwise.app:app --host 0.0.0.0 --port 8000
+   ```
+5. Codespaces prompts to forward port 8000 — click **Open in Browser**.
+
+**Gitpod** (<https://gitpod.io/#/https://github.com/Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization>) — same flow, free 50 hr/month.
+
+**Replit** — import the GitHub repo, set `PYTHONPATH=src` in Secrets, run.
+
+> All three expose port 8000 as a public HTTPS URL you can hit from any device, including phones and tablets — see [§2.5](#25-mobile-tablet-chromebook).
+
+---
+
+### 2.2 Linux / macOS / WSL — one block
+
+Works on every Linux distro, macOS, ChromeOS Linux, and WSL.
 
 ```bash
-git clone https://github.com/Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It.git
-cd Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It
+git clone https://github.com/Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization.git
+cd Smart-Campus-Energy-Optimization
 
 python3 -m venv venv
 source venv/bin/activate
+pip install --upgrade pip
 pip install -r requirements.txt
 
 cp .env.example .env
 # Edit .env and add at least one LLM key (Groq recommended — free + fast)
-# GROQ_API_KEY=...
+#   GROQ_API_KEY=gsk_...
 
 export PYTHONPATH=src
 uvicorn gridwise.app:app --host 0.0.0.0 --port 8000
 ```
 
-### 2.2 Docker (production parity)
+**Per-distro extras if the block above fails on a stripped system:**
+
+| Distro | If `python3 -m venv` fails | Install command |
+|---|---|---|
+| Debian / Ubuntu | `ensurepip` not available | `sudo apt install -y python3-venv python3-full` |
+| Fedora | pip too old | `sudo dnf install -y python3.11 python3.11-devel` then use `python3.11` |
+| RHEL / Rocky 9 | CodeReady Builder needed | `sudo dnf --enablerepo=crb install -y python3-devel` |
+| Arch / Manjaro | none typically | `sudo pacman -Syu python python-pip` if missing |
+| openSUSE | none typically | `sudo zypper install -y python3 python3-pip python3-virtualenv` |
+| Alpine (musl) | none — pip bundled | `sudo apk add --no-cache python3 py3-pip py3-virtualenv git` |
+| macOS (no Python) | Homebrew | `brew install python@3.12 git` |
+| macOS (no CLT) | Xcode CLT | `xcode-select --install` |
+
+---
+
+### 2.3 Windows native (PowerShell)
+
+Works on Windows 10 (1809+) and Windows 11.
+
+**One-time prerequisites** — install Python if you don't have it:
+```powershell
+# Pick ONE of these:
+winget install Python.Python.3.12      # recommended
+# OR download from https://www.python.org/downloads/windows/ (check "Add to PATH")
+```
+
+**Run the app** (in PowerShell — not CMD, not Git Bash):
+
+```powershell
+git clone https://github.com/Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization.git
+cd Smart-Campus-Energy-Optimization
+
+python -m venv venv
+venv\Scripts\Activate.ps1
+pip install --upgrade pip
+pip install -r requirements.txt
+
+copy .env.example .env
+# Edit .env with Notepad, VS Code, or:  notepad .env
+# Add at least:  GROQ_API_KEY=gsk_...
+
+$env:PYTHONPATH = "src"
+uvicorn gridwise.app:app --host 0.0.0.0 --port 8000
+```
+
+**Windows CMD** (if you must, though PowerShell is easier):
+
+```bat
+git clone https://github.com/Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization.git
+cd Smart-Campus-Energy-Optimization
+python -m venv venv
+venv\Scripts\activate.bat
+pip install -r requirements.txt
+copy .env.example .env
+set PYTHONPATH=src
+uvicorn gridwise.app:app --host 0.0.0.0 --port 8000
+```
+
+**If PowerShell blocks the venv activation:**
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+```
+
+**If `uvicorn` is "not recognized":** the venv isn't active. Look at your prompt — it should start with `(venv) `. If it doesn't, re-run `venv\Scripts\Activate.ps1`.
+
+**WSL2 alternative (often smoother):** run `wsl --install -d Ubuntu` then follow [§2.2](#22-linux-macos-wsl-one-block).
+
+---
+
+### 2.4 Docker (production parity)
 
 ```bash
 docker pull ashikonik/gridwise-bup-2026:1.0.0
 docker run --rm -p 8000:8000 --env-file .env ashikonik/gridwise-bup-2026:1.0.0
 ```
 
-Or build the image yourself:
+Or build the image yourself (no Docker Hub needed):
 
 ```bash
+git clone https://github.com/Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization.git
+cd Smart-Campus-Energy-Optimization
 docker build -t gridwise:1.0.0 .
 docker run --rm -p 8000:8000 --env-file .env gridwise:1.0.0
 ```
 
-### 2.2b Run on any distro (Linux / macOS / WSL / Windows)
-
-The app is pure-Python. The only system requirement is a working Python and pip. CBC (PuLP's bundled solver) and scipy both ship as wheels — **no compiler, no `apt build-dep`, no system CBC install is required** on any platform.
-
-Tested against:
-
-| Platform | Python | Status |
-|---|---|---|
-| Ubuntu 22.04 / 24.04 LTS | 3.11, 3.12 | ✅ |
-| Debian 12 (Bookworm) | 3.11 | ✅ |
-| Fedora 39 / 40 | 3.12 | ✅ |
-| RHEL 9 / Rocky 9 | 3.11, 3.12 | ✅ |
-| Arch / Manjaro (rolling) | 3.12 | ✅ |
-| openSUSE Leap 15.6 / Tumbleweed | 3.11 | ✅ |
-| Alpine 3.20 | 3.11 | ✅ (musl libc works; PuLP wheel is pure Python) |
-| macOS 13 Ventura / 14 Sonoma / 15 Sequoia | 3.11, 3.12 | ✅ (Apple Silicon + Intel) |
-| Windows 11 + WSL2 (Ubuntu) | 3.11, 3.12 | ✅ |
-| Windows 11 native | 3.11, 3.12 | ✅ (use `venv\Scripts\activate`) |
-
-#### A. Debian / Ubuntu
-
+**docker-compose** (one command):
 ```bash
-sudo apt update
-sudo apt install -y python3 python3-venv python3-pip
-# That's it — CBC and scipy are wheels, no system solver needed.
-git clone https://github.com/Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It.git
-cd Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It
-python3 -m venv venv
-source venv/bin/activate
-pip install --upgrade pip
+docker compose up --build
+```
+
+The image is multi-stage, runs as a non-root user, and uses `urllib` for healthchecks — no extra tooling required in the container.
+
+---
+
+### 2.5 Mobile / tablet / Chromebook
+
+You don't need a laptop. Three options, in order of ease:
+
+**Option A — Hit the deployed instance.** If we have a public URL (Railway; see [§10.2](#102-public-host-railway-recommended-for-judges)), open it in your phone/tablet browser. Done.
+
+**Option B — Use a cloud IDE from a tablet browser.** Open <https://github.com/Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization> on your iPad/phone, tap **`Code` → `Codespaces` → `Create codespace`**. Forward port 8000, tap **Open in Browser**. You can edit files in the Codespaces web editor too.
+
+**Option C — Termux on Android** (advanced, no root):
+```bash
+pkg install python git
+git clone https://github.com/Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization.git
+cd Smart-Campus-Energy-Optimization
+python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env   # then edit with at least GROQ_API_KEY=...
+cp .env.example .env && nano .env   # Termux has its own nano
 export PYTHONPATH=src
 uvicorn gridwise.app:app --host 0.0.0.0 --port 8000
 ```
+Then visit `http://<your-phone-ip>:8000/ui` from any device on the same Wi-Fi.
 
-If `python3-venv` complains about `ensurepip` on a stripped image:
-```bash
-sudo apt install -y python3-venv python3-full
-```
+**iOS (iSH shell)** — same flow as Termux, but `apk add python3 git` and `python3 -m venv` may need extra flags. Tested working, just slower.
 
-#### B. Fedora / RHEL / Rocky
+> Heads-up: the dev console at `/ui` is desktop-first (Tailwind responsive layout). On a phone in portrait it works but is cramped. **Landscape mode recommended.**
 
-```bash
-sudo dnf install -y python3 python3-pip python3-virtualenv
-git clone https://github.com/Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It.git
-cd Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It
-python3 -m venv venv
-source venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
-cp .env.example .env   # edit keys
-export PYTHONPATH=src
-uvicorn gridwise.app:app --host 0.0.0.0 --port 8000
-```
+---
 
-On RHEL 9 you may need CodeReady Builder for newer pip:
-```bash
-sudo dnf install -y python3 python3-pip python3-virtualenv
-sudo dnf --enablerepo=crb install -y python3-devel
-```
+### 2.6 Run as a systemd service (Linux)
 
-#### C. Arch / Manjaro
-
-```bash
-sudo pacman -Syu --noconfirm python python-pip
-git clone https://github.com/Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It.git
-cd Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It
-python -m venv venv
-source venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
-cp .env.example .env   # edit keys
-export PYTHONPATH=src
-uvicorn gridwise.app:app --host 0.0.0.0 --port 8000
-```
-
-#### D. openSUSE
-
-```bash
-sudo zypper install -y python3 python3-pip python3-virtualenv
-git clone https://github.com/Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It.git
-cd Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It
-python3 -m venv venv
-source venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
-cp .env.example .env   # edit keys
-export PYTHONPATH=src
-uvicorn gridwise.app:app --host 0.0.0.0 --port 8000
-```
-
-#### E. Alpine (musl)
-
-```bash
-sudo apk add --no-cache python3 py3-pip py3-virtualenv git
-cd Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It
-python3 -m venv venv
-source venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
-cp .env.example .env   # edit keys
-export PYTHONPATH=src
-uvicorn gridwise.app:app --host 0.0.0.0 --port 8000
-```
-
-#### F. macOS (Homebrew — Intel or Apple Silicon)
-
-```bash
-# One-time setup
-xcode-select --install              # if no CLT
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-brew install python@3.12 git
-
-git clone https://github.com/Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It.git
-cd Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It
-python3 -m venv venv
-source venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
-cp .env.example .env   # edit keys
-export PYTHONPATH=src
-uvicorn gridwise.app:app --host 0.0.0.0 --port 8000
-```
-
-#### G. Windows 11 (native PowerShell)
-
-```powershell
-# Requires Python 3.11+ from python.org OR `winget install Python.Python.3.12`
-# IMPORTANT: run this ENTIRE block from PowerShell (not CMD, not Git Bash).
-# The `$env:NAME = "value"` syntax is PowerShell-only.
-git clone https://github.com/Pulok-Akibuzzaman/Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It.git
-cd Smart-Campus-Energy-Optimization-Challenge-Team-Ai-Will-Fix-It
-python -m venv venv
-venv\Scripts\Activate.ps1
-pip install --upgrade pip
-pip install -r requirements.txt
-copy .env.example .env              # then edit with Notepad / VS Code
-$env:PYTHONPATH = "src"
-# If you accidentally see "The term 'uvicorn' is not recognized":
-# the venv isn't active. Re-run the `venv\Scripts\Activate.ps1` line above.
-uvicorn gridwise.app:app --host 0.0.0.0 --port 8000
-```
-
-If PowerShell blocks the activation script:
-```powershell
-Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
-```
-
-#### H. Windows 11 + WSL2 (recommended for judges who want a Linux-like environment)
-
-```powershell
-# One-time: enable WSL and install Ubuntu
-wsl --install -d Ubuntu
-```
-
-Then inside the Ubuntu shell, follow section **A. Debian / Ubuntu** verbatim.
-
-#### I. Run as a one-shot systemd service (Linux production-lite)
+For a Linux box that should keep the API running 24/7:
 
 ```ini
 # /etc/systemd/system/gridwise.service
@@ -308,51 +353,87 @@ sudo systemctl status gridwise
 curl -s http://127.0.0.1:8000/health
 ```
 
-#### J. Common pitfalls (any distro)
+---
 
-| Symptom | Cause | Fix |
-|---|---|---|
-| `ERROR: No matching distribution found for fastapi` | pip linked to Python 2.7 | `python3 -m pip install -r requirements.txt` |
-| `pulp` install fails with "no module named distutils" | Python 3.12+ removed distutils | already fixed in PuLP ≥ 2.7; `pip install -U pulp` |
-| `Address already in use` on `:8000` | another process holds the port | `PORT=8001 uvicorn gridwise.app:app --port 8001` or `lsof -i :8000` |
-| `ModuleNotFoundError: No module named 'gridwise'` | forgot `PYTHONPATH=src` | `export PYTHONPATH=src` (bash/zsh) / `set PYTHONPATH=src` (cmd) / `$env:PYTHONPATH = "src"` (PowerShell) — must match the shell you're actually in |
-| `groq: 404 Not Found` | merged default model retired on Groq | set `GROQ_MODEL=openai/gpt-oss-20b` in `.env` |
-| UI returns 404 on `/ui` | gated behind `ENABLE_UI=true` | `echo "ENABLE_UI=true" >> .env` and restart |
-| WSL: `bash: uvicorn: not found` after activation | activation didn't actually run | `source venv/bin/activate && which uvicorn` |
+### 2.7 Verify it works
 
-### 2.3 Verify it works
+**Health check** (works on any shell, any device with `curl`):
 
 ```bash
-# Health check
 curl -s http://127.0.0.1:8000/health
 # -> {"status":"ok"}
+```
 
-# Run the full suite (math path + provider chain + validator + load burst)
+**Run the full test suite** (math path + provider chain + validator + solver fallback):
+
+```bash
 PYTHONPATH=src pytest -q
 # Expected: 37/37 pass
+```
 
-# Or scope to the public-case regression:
+**Run just the public-case regression:**
+
+```bash
 PYTHONPATH=src pytest tests/test_hybrid_optimizer.py -v
 # Expected: 12 pass — 10 cost-diff cases + 2 aggregate checks
 ```
 
 > The 10 public sample cases are loaded from
 > `BUP_CSE_FEST_2026_Preli_Public_Sample_Cases.json` at the repo root. If you
-> checked the project out before this file was committed, copy it there
-> manually (it's the same payload originally added by the Aurna branch under
-> `data/`).
+> checked out a tree state from before this file was committed, copy it there
+> manually.
+
+---
+
+### 2.8 Common pitfalls (any platform)
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `ERROR: No matching distribution found for fastapi` | pip linked to Python 2.7 | `python3 -m pip install -r requirements.txt` |
+| `pulp` install fails with "no module named distutils" | Python 3.12+ removed distutils | already fixed in PuLP ≥ 2.7; `pip install -U pulp` |
+| `Address already in use` on `:8000` | another process holds the port | `PORT=8001 uvicorn gridwise.app:app --port 8001` or `lsof -i :8000` (Win: `netstat -ano \| findstr :8000`) |
+| `ModuleNotFoundError: No module named 'gridwise'` | forgot `PYTHONPATH=src` | bash/zsh: `export PYTHONPATH=src` · CMD: `set PYTHONPATH=src` · PowerShell: `$env:PYTHONPATH = "src"` — must match the shell you're actually in |
+| `groq: 404 Not Found` | default model retired on Groq | `GROQ_MODEL=openai/gpt-oss-20b` in `.env` |
+| UI returns 404 on `/ui` | gated behind `ENABLE_UI=true` | `echo "ENABLE_UI=true" >> .env` and restart |
+| WSL: `bash: uvicorn: not found` after activation | activation didn't actually run | `source venv/bin/activate && which uvicorn` |
+| Windows: `'uvicorn' is not recognized` | venv not active in this shell | re-run `venv\Scripts\Activate.ps1` — prompt must start with `(venv)` |
+| Tests crash with `samples not found` | JSON fixture missing at repo root | pull latest main, or copy `BUP_CSE_FEST_2026_Preli_Public_Sample_Cases.json` into the repo root |
+| PuLP `DeprecationWarning` in test output | PuLP 3.x deprecates direct `LpVariable`/`PULP_CBC_CMD` | informational only; will be addressed in PuLP 4.0 |
+| Codespaces: port 8000 not reachable | port not forwarded | Codespaces panel → Ports tab → right-click 8000 → Port Visibility → Public |
 
 ---
 
 ## 3. Endpoints
+
+### 3.0 Public endpoints (always exposed)
 
 | Endpoint | Method | Purpose |
 |---|---|---|
 | `/health` | GET | Liveness probe — returns `200 {"status":"ok"}` |
 | `/` | GET | 307 redirect to `/docs` |
 | `/favicon.ico` | GET | 1×1 transparent PNG (silences browser auto-fetch) |
+| `/docs` | GET | Swagger UI (auto-generated from the OpenAPI schema) |
+| `/redoc` | GET | ReDoc API reference |
+| `/openapi.json` | GET | Raw OpenAPI 3.x schema |
 | `/optimize-energy` | POST | The actual solver. Accepts a scenario JSON, returns a directive interpretation + 24-hour plan + total cost. |
-| `/ui` | GET | **Debug console — gated behind `ENABLE_UI=true`.** Not exposed to judges. |
+
+### 3.0b Debug endpoints (only when `ENABLE_UI=true`)
+
+| Endpoint | Method | Purpose |
+|---|---|---|
+| `/ui` | GET | Interactive debug console (HTML) |
+| `/ui/api/service-info` | GET | PID, uptime, provider chain, config snapshot |
+| `/ui/api/schema-tests` | GET | Runs 8 malformed payloads against `/optimize-energy` |
+| `/ui/api/sample/{case_id}` | POST | Run a single public case via LLM or math mode |
+| `/ui/api/run-all-samples` | POST | Run all 10 public cases |
+| `/ui/api/perf-burst` | POST | 20-request latency burst (p50/p95/max) |
+| `/ui/api/cold-start` | POST | Uptime snapshot (restart server to re-measure) |
+| `/ui/api/directive-diff/{case_id}` | POST | Per-note LLM interpretation vs reference |
+| `/ui/api/export-response/{case_id}` | POST | Download the `OptimizeResponse` JSON |
+| `/ui/api/guardrail-tests` | GET | 9 bad-input unit tests on the validator |
+| `/ui/api/replay-checks` | GET | E[23] vs initial battery neutrality for all 10 cases |
+| `/ui/api/log-scan` | GET | Greps the live uvicorn log for API-key leakage |
+| `/ui/api/docker-status` | GET | Read-only `docker images` / `docker ps` snapshot |
 
 ### 3.1 `POST /optimize-energy`
 
@@ -401,13 +482,26 @@ curl -s -X POST http://127.0.0.1:8000/optimize-energy \
 
 ## 4. Environment variables
 
+### 4.0 Where to get API keys (all free tiers available)
+
+| Provider | Sign-up URL | Free tier | Time to key |
+|---|---|---|---|
+| **Groq** (recommended) | <https://console.groq.com> | Generous free tier, very fast | ~30 s |
+| **Gemini** | <https://aistudio.google.com/apikey> | 15 RPM, 1M TPM | ~30 s |
+| **OpenRouter** | <https://openrouter.ai/keys> | Many `:free` models | ~30 s |
+| **Puku.sh** | <https://puku.sh> | Browser-session auth required | ~2 min |
+
+You only need **one** key — the chain falls back automatically.
+
+### 4.1 Configuration variables
+
 | Variable | Purpose | Default |
 |---|---|---|
 | `GROQ_API_KEY` | Groq API key (primary LLM) | unset |
 | `GEMINI_API_KEY` | Gemini API key (fallback #1) | unset |
 | `OPENROUTER_API_KEY` | OpenRouter API key (fallback #2) | unset |
 | `PUKU_API_KEY` | Puku.sh API key (fallback #3; currently browser-session auth) | unset |
-| `LLM_PROVIDER_ORDER` | Comma-separated fallback chain | `groq,gemini,openrouter` |
+| `LLM_PROVIDER_ORDER` | Comma-separated fallback chain | `groq,gemini,openrouter,puku` |
 | `GROQ_MODEL` | Groq model | `llama-3.1-8b-instant` |
 | `GEMINI_MODEL` | Gemini model | `gemini-1.5-flash` |
 | `OPENROUTER_MODEL` | OpenRouter model | `meta-llama/llama-3.1-8b-instruct:free` |
@@ -423,7 +517,7 @@ curl -s -X POST http://127.0.0.1:8000/optimize-energy \
 
 ---
 
-## 5. LLM role (mandatory)
+## 5. LLM provider chain
 
 Per the rubric, the **language model must sit in the operator-note interpretation path**. This service uses an OpenAI-compatible HTTP API with the following provider chain:
 
@@ -441,6 +535,8 @@ The strict-JSON system prompt lives in `src/gridwise/prompts.py` and:
 - Forces distractors (cafeteria menu, registration deadlines, drills) to `no_op`
 
 The validator re-checks every directive against the 12 guardrails before it can influence the optimizer. Any malformed LLM output is coerced to `no_op` rather than crashing.
+
+If **no LLM key is set**, the regex safety net still produces a valid plan — `/optimize-energy` will return 200, just without semantic interpretation of free-text notes.
 
 ---
 
@@ -486,27 +582,30 @@ PYTHONPATH=src pytest tests/ -v
 ## 8. Project layout
 
 ```
-gridwise_merged/
+Smart-Campus-Energy-Optimization/
 ├── Dockerfile                  # multi-stage + non-root + urllib healthcheck
 ├── docker-compose.yml
 ├── .dockerignore
-├── .env.example
+├── .env.example                # template — copy to .env and fill in keys
 ├── .gitignore
 ├── README.md                   # this file
-├── LICENSE
-├── pyproject.toml
+├── Procfile                    # Railway / Heroku entry
+├── pyproject.toml              # PEP 621 metadata + pip-installable source
 ├── pytest.ini                  # asyncio_mode=auto
-├── requirements.txt
-├── publish.sh                  # one-shot Docker Hub push (see §10)
+├── railway.toml                # Railway deploy config (PORT-aware CMD)
+├── runtime.txt                 # Python version pin for Railway
+├── requirements.txt            # pip mirror of pyproject deps
+├── publish.sh                  # one-shot Docker Hub push (see §10.3)
 ├── docs/
 │   ├── ARCHITECTURE.md
 │   ├── FINAL_SUBMISSION_DOCUMENTATION.md   # one-page rubric checklist
+│   ├── RAILWAY_DEPLOY.md
 │   ├── VIDEO_SCRIPT.md                     # 3-min demo-day script
 │   └── VIDEO_STORYBOARD.md                 # 18-slide outline
 ├── src/
 │   └── gridwise/
 │       ├── __init__.py
-│       ├── app.py            # FastAPI routes
+│       ├── app.py            # FastAPI routes (public + /ui debug)
 │       ├── config.py         # env loader + masked_api_key helper (Aurna)
 │       ├── constraints.py    # Directive → per-hour arrays (Ashik)
 │       ├── interpreter.py    # 4-provider chain + regex safety net (Ashik)
@@ -516,13 +615,14 @@ gridwise_merged/
 │       ├── schemas.py        # Pydantic models (Ashik)
 │       ├── ui.py             # /ui debug console, gated by ENABLE_UI (Ashik)
 │       └── validator.py      # 12 guardrails (Ashik)
-└── tests/
-    ├── test_hybrid_optimizer.py
-    ├── test_solver_fallback.py
-    ├── test_validator.py
-    ├── test_provider_chain.py
-    ├── test_public_samples.py
-    └── test_load_burst.py
+├── tests/
+│   ├── test_hybrid_optimizer.py    # 10 public cases + 2 aggregates
+│   ├── test_solver_fallback.py     # scipy fallback defence-in-depth
+│   ├── test_validator.py           # 17 malformed-input cases
+│   ├── test_provider_chain.py      # 7 mocked LLM failover scenarios
+│   ├── public_samples.py           # CLI: 10-case determinism harness
+│   └── load_burst.py               # CLI: 20-request latency burst
+└── BUP_CSE_FEST_2026_Preli_Public_Sample_Cases.json   # 10-case fixture
 ```
 
 ---
@@ -568,6 +668,19 @@ The Dockerfile and `railway.toml` are already configured for Railway:
 - `railway.toml` declares `/health` as the healthcheck with a 30 s timeout
   (covers PuLP + scipy cold-start).
 
+### 10.2b Render / Fly.io / Heroku alternatives
+
+Same Docker image works on any platform that runs containers:
+
+| Platform | Free tier | One-click deploy |
+|---|---|---|
+| **Render** | 750 hr/month web service | "New Web Service" → connect this repo → Render reads the Dockerfile automatically |
+| **Fly.io** | 3 shared VMs | `fly launch --dockerfile` |
+| **Heroku** | Eco dyno (~$5/mo, no free) | `heroku container:push web -a your-app` |
+| **DigitalOcean App Platform** | $0 basic tier | "Deploy from GitHub" → picks the Dockerfile |
+
+All four honor `$PORT` — no code changes needed.
+
 ### 10.3 Publish a new image (one-shot)
 
 Use `publish.sh`:
@@ -591,6 +704,8 @@ via `~/.docker/config.json` already populated).
 - **PuLP** is preferred over scipy linprog; if PuLP's bundled CBC fails to install, the service transparently falls back to scipy.
 - The regex safety net is intentionally narrow — it covers the public sample patterns only. In production, real LLM providers must be configured.
 - **Numeric tolerance** for judge comparisons is **0.01 kWh / 0.01 BDT** per the Problem Statement §11.5.
+- **PuLP 3.x deprecation warnings** appear in test output (`PULP_CBC_CMD is deprecated`, `Constructing LpVariable(name, ...) directly is deprecated`). They are informational — the LP still solves correctly. Plan to migrate to PuLP 4.0's `add_variable` API before that release ships.
+- The `/ui` debug console is desktop-first (Tailwind responsive layout). It works on tablets in landscape and is barely usable on phones in portrait — judges on small screens should hit `/docs` instead.
 
 ---
 
@@ -629,9 +744,9 @@ This codebase is the product of three independent branches merged into one final
 
 | Branch | What we kept | Why |
 |---|---|---|
-| **Aurna** (`app/optimizer.py`) | Exact cost objective `Σ grid[h] · tariff[h]` with `1e-6` complementarity penalty. `masked_api_key` log helper. | Matches reference optimum to the paisa on all 10 public cases (0.00 BDT diff). |
-| **Pulok** (`app/llm_interpreter.py`) | Regex-from-raw-text safety net as the always-available final fallback. MILP mutual-exclusion theory as the basis for charge/discharge window handling. | Regex safety net keeps `/optimize-energy` returning 200 even when every LLM is down. |
-| **Ashik** (this base, `src/gridwise/`) | 4-provider LLM chain, 12-check validator, 17-unit-test guardrail suite, hardened multi-stage Dockerfile (non-root + urllib healthcheck), `ENABLE_UI`-gated debug console, Pydantic v2 schemas with per-directive adjustment models. | Best operational resilience; the foundation everything else merges into. |
+| **Aurna** | Exact cost objective `Σ grid[h] · tariff[h]` with `1e-6` complementarity penalty. `masked_api_key` log helper. | Matches reference optimum to the paisa on all 10 public cases (0.00 BDT diff). |
+| **Pulok** | Regex-from-raw-text safety net as the always-available final fallback. MILP mutual-exclusion theory as the basis for charge/discharge window handling. Public sample fixture file. | Regex safety net keeps `/optimize-energy` returning 200 even when every LLM is down. |
+| **Ashik** (base) | 4-provider LLM chain, 12-check validator, 17-unit-test guardrail suite, hardened multi-stage Dockerfile (non-root + urllib healthcheck), `ENABLE_UI`-gated debug console, Pydantic v2 schemas with per-directive adjustment models. | Best operational resilience; the foundation everything else merges into. |
 
 **Team:** Aurna · Pulok · Ashik (Team Ai-Will-Fix-It)
 
